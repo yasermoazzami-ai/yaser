@@ -107,7 +107,12 @@ function technicals(bars) {
   })();
 
   const vol5 = mean(vol.slice(-5)), vol20 = mean(vol.slice(-20));
+  // Queue days (buy or sell queue at the daily price limit): the whole session trades at
+  // one price, so high == low. Indicators and ATR understate risk on such symbols and a
+  // stop cannot be executed inside a sell queue.
+  const lockedDays20 = bars.slice(-20).filter(b => b.high === b.low).length;
   return {
+    lockedDays20,
     close: c,
     lastDate: bars[i].d,
     chg1d: pct(c, close[i - 1]),
@@ -260,11 +265,16 @@ function classify(score, t, f, liquidityB, fd, plan) {
   if (f && f.netReal20 < 0 && f.netReal20PctOfValue < -5) flags.push('خروج مستمر پول حقیقی');
   if (t.adx < 15) flags.push('بدون روند (ADX پایین)');
   if (!(fd.pe > 0)) flags.push('بدون EPS مثبت');
+  const queueDriven = t.lockedDays20 >= 6;
+  if (queueDriven) flags.push(`سهم صفی: ${t.lockedDays20} روز از ۲۰ روز در صف (ریسک نقدشوندگی و اجرای حد ضرر)`);
+  const parabolic = t.ret60 > 100 || t.vsSma50 > 30;
+  if (parabolic) flags.push(`رشد عمودی (${Math.round(t.ret60)}٪ در ۶۰ روز، ${Math.round(t.vsSma50)}٪ بالای MA50)`);
   if (fd.pe > 30) flags.push(`P/E بالا (${Math.round(fd.pe)})`);
   const overextended = t.rsi >= 75 || t.vsSma20 > 12;
   const nearResistance = plan.rr < 1.2;
   let signal;
   if (score >= 70 && !(fd.pe > 0 && fd.pe <= 30)) signal = 'زیر نظر';
+  else if (score >= 70 && (queueDriven || parabolic)) signal = 'پرریسک؛ صفی/رشد عمودی';
   else if (score >= 70 && !overextended && nearResistance) signal = 'قوی؛ نزدیک مقاومت، منتظر شکست یا پولبک';
   else if (score >= 70 && !overextended) signal = 'ورود پله‌ای';
   else if (score >= 70) signal = 'قوی ولی پرشده؛ منتظر پولبک';
@@ -441,6 +451,7 @@ function renderReport(data, results, indexT, eqT, opts) {
     '- ارزش: P/E با EPS پیش‌بینی (یا TTM) نسبت به P/E گروه و فاصله از سقف ۵۲ هفته.',
     '- حمایت/مقاومت: نقاط چرخش فراکتالی (۳ کندل هر طرف) در ۲۵۰ روز اخیر که در بازه ۱.۵٪ ادغام شده‌اند.',
     '- حد ضرر: نیم ATR زیر نزدیک‌ترین حمایت، حداکثر ۲.۵ ATR یا ۱۲٪. هدف‌ها: مقاومت‌های بعدی؛ اگر سهم در سقف باشد ۳ و ۵ ATR.',
+    '- سهم صفی (۶ روز یا بیشتر از ۲۰ روز با سقف = کف) یا رشد عمودی (بیش از ۱۰۰٪ در ۶۰ روز یا بیش از ۳۰٪ بالای MA50) سیگنال ورود نمی‌گیرد.',
     '- سیگنال «ورود پله‌ای» فقط وقتی داده می‌شود که امتیاز ≥ ۷۰، RSI < ۷۵، فاصله از MA20 < ۱۲٪، ریسک به ریوارد ≥ ۱.۲ و P/E مثبت و ≤ ۳۰ باشد.',
     '- این گزارش خروجی مکانیکی داده است و توصیه سرمایه‌گذاری نیست. اخبار، مجامع، گزارش‌های کدال و ریسک‌های سیاسی را جداگانه بررسی کنید.'
   ].join('\n'));
