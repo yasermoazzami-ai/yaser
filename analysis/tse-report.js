@@ -17,6 +17,7 @@ const { smartMoneySMT } = require('../smart-money/smt-formula');
 
 const B_TOMAN = 1e10;
 const MIN_BARS = 60;
+const FUND_SECTOR = '68'; // صندوق سرمایه‌گذاری قابل معامله: no earnings, excluded from stock ranking
 
 const isNum = Number.isFinite;
 const round = (v, d = 1) => (isNum(v) ? Math.round(v * 10 ** d) / 10 ** d : null);
@@ -25,6 +26,9 @@ const mean = a => { const v = a.filter(isNum); return v.length ? v.reduce((x, y)
 const sum = a => a.filter(isNum).reduce((x, y) => x + y, 0);
 const median = a => { const v = a.filter(isNum).sort((x, y) => x - y); return v.length ? v[Math.floor(v.length / 2)] : NaN; };
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+// TSETMC returns Arabic ye/kaf; show Persian letters in the report.
+const faText = v => String(v || '').replace(/ي/g, 'ی').replace(/ك/g, 'ک').trim();
 
 function loadExport(file) {
   let buf = fs.readFileSync(file);
@@ -243,7 +247,7 @@ function tradePlan(t) {
   return { entryLow, entryHigh: c, stop, target1: t1, target2: t2, riskPct: (c - stop) / c * 100, rr: (t1 - c) / (c - stop) };
 }
 
-function classify(score, t, f, liquidityB) {
+function classify(score, t, f, liquidityB, fd, plan) {
   const flags = [];
   if (liquidityB < 3) flags.push('نقدشوندگی پایین');
   if (t.divergence && t.divergence.type === 'bearish') flags.push('واگرایی منفی RSI');
@@ -251,9 +255,11 @@ function classify(score, t, f, liquidityB) {
   if (t.vsSma20 > 15) flags.push('فاصله زیاد از MA20');
   if (f && f.netReal20 < 0 && f.netReal20PctOfValue < -5) flags.push('خروج مستمر پول حقیقی');
   if (t.adx < 15) flags.push('بدون روند (ADX پایین)');
+  if (!(fd.pe > 0)) flags.push('بدون EPS مثبت');
   const overextended = t.rsi >= 75 || t.vsSma20 > 12;
   let signal;
-  if (score >= 70 && !overextended) signal = 'ورود پله‌ای';
+  if (score >= 70 && !overextended && plan.rr < 1.2) signal = 'قوی؛ نزدیک مقاومت، منتظر شکست یا پولبک';
+  else if (score >= 70 && !overextended) signal = 'ورود پله‌ای';
   else if (score >= 70) signal = 'قوی ولی پرشده؛ منتظر پولبک';
   else if (score >= 55) signal = 'زیر نظر';
   else if (score < 40) signal = 'اجتناب';
@@ -268,7 +274,9 @@ function analyzeIndex(block) {
   return technicals(rows);
 }
 
-function analyzeSymbol(item, indexT, opts) {
+function analyzeSymbol(item0, indexT, opts) {
+  const item = { ...item0, symbol: faText(item0.symbol), name: faText(item0.name), info: item0.info && { ...item0.info, sectorName: faText(item0.info.sectorName) } };
+  if (item.info && item.info.sectorCode === FUND_SECTOR) return { symbol: item.symbol, skipped: 'صندوق', fund: true };
   const raw = barsFrom(item);
   if (raw.length < MIN_BARS) return { symbol: item.symbol, skipped: `تاریخچه کافی نیست (${raw.length} روز)` };
   const { bars, events } = adjustPrices(raw);
@@ -283,12 +291,13 @@ function analyzeSymbol(item, indexT, opts) {
   let score = composite(parts);
   if (liquidityB < opts.minValue) score -= 10;
   if (stale) score -= 5;
-  const cls = classify(score, t, f, liquidityB);
+  const plan = tradePlan(t);
+  const cls = classify(score, t, f, liquidityB, fd, plan);
   if (stale) cls.flags.push(`آخرین معامله ${t.lastDate} (متوقف یا کم‌معامله)`);
   return {
     symbol: item.symbol, name: item.name, insCode: item.insCode,
     score, parts, ...cls, rs20, rs60, liquidityB, adjustments: events.length,
-    tech: t, flow: f, fund: fd, plan: tradePlan(t)
+    tech: t, flow: f, fund: fd, plan
   };
 }
 
@@ -401,15 +410,20 @@ function renderReport(data, results, indexT, eqT, opts) {
   top.forEach((r, i) => md.push(`| ${fa(i + 1)} | ${r.symbol} | ${fa(r.tech.close)} | ${fa(r.score)} | ${r.signal} | ${fa(r.tech.rsi)} | ${fa(r.parts.trend)} | ${fa(r.flow && r.flow.netReal5, 1)} | ${fa(r.fund.pe, 1)} | ${fa(r.fund.sectorPE, 1)} | ${fa(r.plan.entryLow)}–${fa(r.plan.entryHigh)} | ${fa(r.plan.stop)} | ${fa(r.plan.target1)} | ${fa(r.plan.rr, 1)} |`));
   md.push('');
 
-  md.push(`## ۳. تحلیل نمادهای برتر`);
-  for (const r of top.slice(0, opts.cards)) md.push(symbolCard(r));
+  // Actionable entries first, then the rest of the ranking, so every buy signal gets a card.
+  const buys = ok.filter(r => r.signal === 'ورود پله‌ای');
+  const cards = [...buys, ...ok.filter(r => r.signal !== 'ورود پله‌ای')].slice(0, Math.max(opts.cards, buys.length));
+  md.push(`## ۳. تحلیل نمادها (اول سیگنال‌های ورود، سپس بقیه به ترتیب امتیاز)`);
+  for (const r of cards) md.push(symbolCard(r));
 
   const avoid = ok.filter(r => r.signal === 'اجتناب').slice(-15).reverse();
   if (avoid.length) {
     md.push(`## ۴. نمادهای ضعیف (اجتناب)`);
     md.push(avoid.map(r => `- **${r.symbol}** — امتیاز ${fa(r.score)}${r.flags.length ? ` · ${r.flags.join('، ')}` : ''}`).join('\n') + '\n');
   }
-  if (skipped.length) md.push(`**رد شده:** ${skipped.map(s => `${s.symbol} (${s.skipped})`).join('، ')}\n`);
+  const funds = skipped.filter(s => s.fund), short = skipped.filter(s => !s.fund);
+  if (funds.length) md.push(`**صندوق‌های کنار گذاشته‌شده (${fa(funds.length)}):** ${funds.map(s => s.symbol).join('، ')}\n`);
+  if (short.length) md.push(`**رد شده:** ${short.map(s => `${s.symbol} (${s.skipped})`).join('، ')}\n`);
 
   md.push(`## روش‌شناسی`);
   md.push([
