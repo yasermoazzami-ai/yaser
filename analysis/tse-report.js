@@ -219,7 +219,9 @@ function scoreMoney(f, t) {
 }
 
 function scoreValue(fd, t) {
-  if (!(fd.pe > 0)) return NaN;
+  // No positive EPS means losses or no forecast: score it low rather than dropping the
+  // weight, otherwise loss-makers are ranked on momentum alone and float to the top.
+  if (!(fd.pe > 0)) return 10;
   let s = 0;
   const d = fd.peVsSector;
   if (isNum(d)) s += d < -30 ? 50 : d < -10 ? 38 : d < 10 ? 25 : d < 30 ? 12 : 4;
@@ -239,12 +241,14 @@ function composite(parts) {
 function tradePlan(t) {
   const c = t.close, a = t.atr;
   const sup = t.support1 && t.support1.price > c - 3 * a ? t.support1.price : NaN;
+  // Stop half an ATR under the nearest support, but never wider than 2.5 ATR or 12%.
   let stop = isNum(sup) ? sup - 0.5 * a : c - 2 * a;
-  if ((c - stop) / c > 0.12) stop = c - 2 * a;
+  stop = Math.max(stop, c - 2.5 * a, c * 0.88);
   const entryLow = isNum(sup) ? Math.max(sup, c - a) : c - a;
-  const t1 = t.resistance1 ? t.resistance1.price : c + 2 * a;
-  const t2 = t.resistance2 ? t.resistance2.price : Math.max(t1 + 2 * a, t.hi52 > t1 ? t.hi52 : 0);
-  return { entryLow, entryHigh: c, stop, target1: t1, target2: t2, riskPct: (c - stop) / c * 100, rr: (t1 - c) / (c - stop) };
+  // Targets: the next resistance levels; with none overhead (all-time high) use 3 and 5 ATR.
+  const t1 = t.resistance1 ? t.resistance1.price : c + 3 * a;
+  const t2 = t.resistance2 ? t.resistance2.price : t.resistance1 ? Math.max(t1 + 2 * a, t.hi52 > t1 ? t.hi52 : 0) : c + 5 * a;
+  return { entryLow, entryHigh: c, stop, target1: t1, target2: t2, riskPct: (c - stop) / c * 100, rr: (t1 - c) / (c - stop), athTargets: !t.resistance1 };
 }
 
 function classify(score, t, f, liquidityB, fd, plan) {
@@ -256,9 +260,12 @@ function classify(score, t, f, liquidityB, fd, plan) {
   if (f && f.netReal20 < 0 && f.netReal20PctOfValue < -5) flags.push('خروج مستمر پول حقیقی');
   if (t.adx < 15) flags.push('بدون روند (ADX پایین)');
   if (!(fd.pe > 0)) flags.push('بدون EPS مثبت');
+  if (fd.pe > 30) flags.push(`P/E بالا (${Math.round(fd.pe)})`);
   const overextended = t.rsi >= 75 || t.vsSma20 > 12;
+  const nearResistance = plan.rr < 1.2;
   let signal;
-  if (score >= 70 && !overextended && plan.rr < 1.2) signal = 'قوی؛ نزدیک مقاومت، منتظر شکست یا پولبک';
+  if (score >= 70 && !(fd.pe > 0 && fd.pe <= 30)) signal = 'زیر نظر';
+  else if (score >= 70 && !overextended && nearResistance) signal = 'قوی؛ نزدیک مقاومت، منتظر شکست یا پولبک';
   else if (score >= 70 && !overextended) signal = 'ورود پله‌ای';
   else if (score >= 70) signal = 'قوی ولی پرشده؛ منتظر پولبک';
   else if (score >= 55) signal = 'زیر نظر';
@@ -375,7 +382,7 @@ function symbolCard(r) {
   if (fd.codalMonthly.length) lines.push(`- کدال (ماهانه): ${fd.codalMonthly.map(l => `${l.title.replace(/\s+/g, ' ').slice(0, 70)} [${l.publishDate}]`).join(' | ')}`);
   lines.push(
     '',
-    `**برنامه معامله** — محدوده ورود ${fa(p.entryLow)} تا ${fa(p.entryHigh)} · حد ضرر ${fa(p.stop)} (${faPct(-p.riskPct)}) · هدف اول ${fa(p.target1)} (${faPct(pct(p.target1, t.close))}) · هدف دوم ${fa(p.target2)} · ریسک به ریوارد ${fa(p.rr, 2)}`,
+    `**برنامه معامله** — محدوده ورود ${fa(p.entryLow)} تا ${fa(p.entryHigh)} · حد ضرر ${fa(p.stop)} (${faPct(-p.riskPct)}) · هدف اول ${fa(p.target1)} (${faPct(pct(p.target1, t.close))}) · هدف دوم ${fa(p.target2)} · ریسک به ریوارد ${fa(p.rr, 2)}${p.athTargets ? ' (در سقف: مقاومتی در ۲۵۰ روز اخیر نیست؛ هدف‌ها ۳ و ۵ ATR)' : ''}`,
     ''
   );
   return lines.join('\n');
@@ -433,7 +440,8 @@ function renderReport(data, results, indexT, eqT, opts) {
     '- جریان پول: خالص حقیقی ۵ و ۲۰ روز، نسبت خالص به ارزش معاملات، قدرت خریدار، حقیقی قوی (فرمول SMT) و تأیید حجم.',
     '- ارزش: P/E با EPS پیش‌بینی (یا TTM) نسبت به P/E گروه و فاصله از سقف ۵۲ هفته.',
     '- حمایت/مقاومت: نقاط چرخش فراکتالی (۳ کندل هر طرف) در ۲۵۰ روز اخیر که در بازه ۱.۵٪ ادغام شده‌اند.',
-    '- حد ضرر: نیم ATR زیر نزدیک‌ترین حمایت (حداکثر ۱۲٪)، در غیر این صورت ۲ ATR. هدف‌ها: مقاومت‌های بعدی یا مضرب ATR.',
+    '- حد ضرر: نیم ATR زیر نزدیک‌ترین حمایت، حداکثر ۲.۵ ATR یا ۱۲٪. هدف‌ها: مقاومت‌های بعدی؛ اگر سهم در سقف باشد ۳ و ۵ ATR.',
+    '- سیگنال «ورود پله‌ای» فقط وقتی داده می‌شود که امتیاز ≥ ۷۰، RSI < ۷۵، فاصله از MA20 < ۱۲٪، ریسک به ریوارد ≥ ۱.۲ و P/E مثبت و ≤ ۳۰ باشد.',
     '- این گزارش خروجی مکانیکی داده است و توصیه سرمایه‌گذاری نیست. اخبار، مجامع، گزارش‌های کدال و ریسک‌های سیاسی را جداگانه بررسی کنید.'
   ].join('\n'));
   return md.join('\n') + '\n';
