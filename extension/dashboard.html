@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TSETMC Stocks Radar Pro — داشبورد حرفه‌ای</title>
+  <link rel="stylesheet" href="dashboard.css" />
+  <link rel="stylesheet" href="pro-theme.css" />
+</head>
+<body>
+  <header class="topbar proTopbar">
+    <div class="proBrandArea">
+      <div class="proLogo">◎</div>
+      <div>
+        <h1>TSETMC Stocks Radar Pro</h1>
+        <p>رادار هوشمند بازار سرمایه</p>
+      </div>
+    </div>
+    <div class="proTopActions">
+      <button id="refreshBtn" class="proRefreshBtn">به‌روزرسانی</button>
+      <button class="proIconBtn" id="proNotifyBtn" title="هشدارها">🔔<span class="proNotifDot">2</span></button>
+      <button class="proIconBtn" id="proThemeBtn" title="حالت نمایش">☾</button>
+      <button class="proIconBtn" id="proSettingsBtn" title="تنظیمات">⚙</button>
+    </div>
+    <div class="engineControls" aria-hidden="true">
+      <button id="autoBtn">شروع پایش</button>
+      <label class="speedControl">سرعت پایش <select id="intervalSelect"><option value="2000" selected>۲ ثانیه</option><option value="3000">۳ ثانیه</option><option value="5000">۵ ثانیه</option><option value="10000">۱۰ ثانیه</option><option value="30000">۳۰ ثانیه</option></select></label>
+      <button id="stopAutoBtn">توقف پایش</button>
+      <button id="resetHistoryBtn">پاکسازی روندها</button>
+      <button id="clearAlertsBtn">پاکسازی پیام‌ها</button>
+      <button id="dailyValueBtn">میانگین ارزش ۵/۲۰ روزه</button>
+      <button id="hotMoneyBtn">خالص برآورد پول درشت ۳/۵ روزه</button>
+      <button id="clearBtn">پاکسازی کش</button>
+      <button id="fullscreenBtn">تمام‌صفحه</button>
+    </div>
+  </header>
+  <nav class="tabs proSidebar">
+    <div class="proSideBrand"><span class="proSideLogo">◎</span><div><b>TSETMC Radar</b><small>نسخه 8.15.0</small></div></div>
+    <button class="tab active" data-page="radar"><span class="proNavIcon">⌂</span><span>داشبورد</span></button>
+    <button class="tab" data-page="bigmoney"><span class="proNavIcon">◉</span><span>رادار پول</span></button>
+    <button class="tab" data-page="symbols"><span class="proNavIcon">◌</span><span>دیدبان</span></button>
+    <button class="tab" data-page="groups"><span class="proNavIcon">◔</span><span>گروه‌ها</span></button>
+    <button class="tab" data-page="battle"><span class="proNavIcon">⌁</span><span>صف‌های احتمالی</span></button>
+    <button class="tab" data-page="trend"><span class="proNavIcon">↗</span><span>روندها</span></button>
+    <button class="tab" data-page="alerts"><span class="proNavIcon">♢</span><span>هشدارها</span></button>
+    <button class="tab" data-page="charts"><span class="proNavIcon">▥</span><span>نمودارها</span></button>
+    <div class="proSidebarSpacer"></div>
+    <div class="proTrialCard">
+      <div class="proTrialVersion">نسخه آزمایشی 8.15.0</div>
+      <div class="proTrialStatus"><span></span> موتور v7.3 فعال</div>
+      <button type="button" class="proUpgradeBtn">ارتقا به نسخه کامل</button>
+    </div>
+    <div class="proSideInsight">
+      <div class="proSideInsightHead"><b>حجم‌های مشکوک امروز</b><span>▥</span></div>
+      <small>بیش از ۲ برابر میانگین حدود ۲۰ جلسه</small>
+      <div id="proSideSuspicious" class="proSideScroll"></div>
+    </div>
+  </nav>
+  <main>
+    <div id="statusBox" class="status">آماده</div>
+    <div id="monitorBadge" class="monitorBadge off">پایش خودکار متوقف</div>
+    <div class="globalSearchBox">
+      <input id="globalSearchInput" placeholder="جستجوی سریع نماد یا نام؛ مثال: فملی، خودرو، وبملت، اهرم، دارا، پالایش..." />
+      <button id="clearSearchBtn">پاک کردن جستجو</button>
+    </div>
+    <section id="radar" class="page active">
+      <div id="dataHealth" class="health"></div>
+      <div id="unitGuide" class="unitGuide">واحد مبالغ: تومان</div>
+      <div class="cards">
+        <div class="card"><small>نمادهای پردازش‌شده</small><b id="mTotal">۰</b></div>
+        <div class="card"><small>حقیقی/حقوقی</small><b id="mClient">۰</b></div>
+        <div class="card"><small>پول حقیقی خالص</small><b id="mRealMoney">۰</b></div>
+        <div class="card"><small>برآورد پول درشت خالص</small><b id="mBigMoney">۰</b></div>
+        <div class="card"><small>جدال آخرین/پایانی</small><b id="mBattle">۰ خرید / ۰ فروش</b></div>
+        <div class="card"><small>میانگین آخرین / پایانی بازار</small><b id="mPercent">۰٪ / ۰٪</b></div>
+        <div class="card"><small>ارزش معاملات</small><b id="mValue">۰</b></div>
+      </div>
+      <div class="panel mt mojPanel">
+        <h2>روند لحظه‌ای بازار</h2>
+        <div class="chartGrid compactCharts">
+          <div class="panel"><h2>جدال لحظه‌ای و پایانی</h2><canvas id="chartMojPercent"></canvas></div>
+          <div class="panel"><h2>برآورد پول درشت و پول حقیقی</h2><canvas id="chartMojMoney"></canvas></div>
+          <div class="panel"><h2>ارزش معاملات + میانگین ۵ و ۲۰ روزه</h2><div id="dailyValueStatus" class="unitHint">برای محاسبه، دکمه میانگین ارزش را بزن.</div><canvas id="chartMojValue"></canvas></div>
+        </div>
+      </div>
+      <div class="panel mt moneyFlowPanel">
+        <h2>نمودار جریان پول حقیقی و پول درشت</h2>
+        <div class="chartGrid compactCharts">
+          <div class="panel"><h2>جریان پول حقیقی بازار</h2><canvas id="chartFlowRealRadar"></canvas></div>
+          <div class="panel"><h2>جریان پول درشت بازار</h2><canvas id="chartFlowBigRadar"></canvas></div>
+        </div>
+      </div>
+      <div class="panel mt alertPanelSplit">
+        <h2>خرید/فروش درشت لحظه‌ای بالای ۲ میلیارد تومان <span class="unitHint">تعداد کل: <b id="alertCount">۰</b></span></h2>
+        <div class="alertsSplit">
+          <div class="alertColumn buyColumn">
+            <h3>خریدهای درشت بالای ۲ میلیارد <span>تعداد: <b id="alertBuyCount">۰</b></span></h3>
+            <div id="liveBuyAlerts" class="alertList alertListCompact"></div>
+          </div>
+          <div class="alertColumn sellColumn">
+            <h3>فروش‌های درشت بالای ۲ میلیارد <span>تعداد: <b id="alertSellCount">۰</b></span></h3>
+            <div id="liveSellAlerts" class="alertList alertListCompact"></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h2>ورود برآورد پول درشت نمادها</h2><div id="topBigIn" class="list"></div></div>
+        <div class="panel"><h2>خروج برآورد پول درشت نمادها</h2><div id="topBigOut" class="list"></div></div>
+        <div class="panel"><h2>ورود پول حقیقی</h2><div id="topRealIn" class="list"></div></div>
+        <div class="panel"><h2>خروج پول حقیقی</h2><div id="topRealOut" class="list"></div></div>
+        <div class="panel"><h2>آخرین قوی‌تر از پایانی</h2><div id="topBattleBuy" class="list"></div></div>
+        <div class="panel"><h2>آخرین ضعیف‌تر از پایانی</h2><div id="topBattleSell" class="list"></div></div>
+      </div>
+    </section>
+    <section id="bigmoney" class="page">
+      <div class="toolbar">
+        <input id="bigSearchInput" placeholder="جستجو در برآورد پول درشت..." />
+        <select id="bigGroupSelect"><option value="all">همه گروه‌ها</option></select>
+        <select id="bigModeSelect">
+          <option value="bigIn">ورود برآورد پول درشت</option>
+          <option value="bigOut">خروج برآورد پول درشت</option>
+          <option value="bigAbs">بیشترین رد پای برآورد پول درشت</option>
+          <option value="realIn">ورود پول حقیقی</option>
+          <option value="realOut">خروج پول حقیقی</option>
+        </select>
+        <span id="hotMoneyStatus" class="unitHint">خالص برآورد پول درشت ۳/۵ روزه هنوز محاسبه نشده.</span>
+      </div>
+      <div class="tableWrap"><table>
+        <thead><tr><th>نماد</th><th>گروه</th><th>برآورد پول درشت امروز</th><th>پول حقیقی امروز</th><th>خالص درشت ۳روزه</th><th>خالص درشت ۵روزه</th><th>روزهای معتبر</th><th>سرانه خرید حقیقی</th><th>سرانه فروش حقیقی</th><th>قدرت خرید</th><th>قدرت فروش</th><th>آخرین/پایانی</th></tr></thead>
+        <tbody id="bigRows"></tbody>
+      </table></div>
+      <div class="panel mt">
+        <h2>نتایج مستقیم خالص برآورد پول درشت ۳/۵ روزه</h2>
+        <div id="hotMoneySummary" class="unitHint">برای محاسبه، دکمه خالص برآورد پول درشت ۳/۵ روزه را بزن.</div>
+        <div class="tableWrap mt"><table>
+          <thead><tr><th>نماد</th><th>گروه</th><th>خالص درشت ۳روزه</th><th>خالص درشت ۵روزه</th><th>روزهای معتبر</th></tr></thead>
+          <tbody id="hotMoneyRows"><tr><td colspan="5" class="empty">هنوز محاسبه نشده.</td></tr></tbody>
+        </table></div>
+      </div>
+    </section>
+    <section id="battle" class="page">
+      <div class="toolbar">
+        <input id="battleSearchInput" placeholder="جستجو در جنگ قیمت..." />
+        <select id="battleGroupSelect"><option value="all">همه گروه‌ها</option></select>
+        <select id="battleModeSelect">
+          <option value="buyer">فشار خرید لحظه‌ای</option>
+          <option value="seller">فشار فروش لحظه‌ای</option>
+          <option value="reverseUp">برگشت مثبت</option>
+          <option value="reverseDown">عقب‌نشینی آخرین</option>
+          <option value="all">همه</option>
+        </select>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h2>خریدار در جدال قیمت جلوتر است</h2><div id="battleBuyerList" class="list"></div></div>
+        <div class="panel"><h2>فروشنده در جدال قیمت جلوتر است</h2><div id="battleSellerList" class="list"></div></div>
+      </div>
+      <div class="tableWrap mt"><table>
+        <thead><tr><th>نماد</th><th>صنعت</th><th>وضعیت جدال</th><th>آخرین٪</th><th>پایانی٪</th><th>اختلاف آخرین - پایانی</th><th>برآورد پول درشت</th><th>پول حقیقی</th><th>ارزش</th></tr></thead>
+        <tbody id="battleRows"></tbody>
+      </table></div>
+    </section>
+    <section id="symbols" class="page">
+      <div class="toolbar">
+        <input id="searchInput" placeholder="جستجوی نماد یا نام..." />
+        <select id="groupSelect"><option value="all">همه گروه‌ها</option></select>
+        <select id="sortSelect">
+          <option value="bigIn">ورود برآورد پول درشت</option>
+          <option value="bigOut">خروج برآورد پول درشت</option>
+          <option value="realIn">ورود پول حقیقی</option>
+          <option value="realOut">خروج پول حقیقی</option>
+          <option value="battle">جنگ آخرین/پایانی</option>
+          <option value="value">ارزش معامله</option>
+          <option value="buyPower">قدرت خرید</option>
+          <option value="sellPower">قدرت فروش</option>
+        </select>
+      </div>
+      <div class="tableWrap"><table>
+        <thead><tr><th>نماد</th><th>صنعت</th><th>آخرین قیمت</th><th>قیمت پایانی</th><th>آخرین٪</th><th>پایانی٪</th><th>جدال</th><th>برآورد پول درشت</th><th>پول حقیقی</th><th>سرانه خرید/فروش</th><th>قدرت خ/ف</th><th>ارزش</th></tr></thead>
+        <tbody id="symbolRows"></tbody>
+      </table></div>
+    </section>
+    <section id="trend" class="page">
+      <div class="toolbar">
+        <select id="trendGroupSelect"><option value="all">کل بازار</option></select>
+        <div class="hintBox">برای ثبت روند، داشبورد را باز بگذار.</div>
+      </div>
+      <div class="chartGrid">
+        <div class="panel"><h2>روند پول حقیقی و برآورد پول درشت</h2><canvas id="chartTrendMoney"></canvas></div>
+        <div class="panel"><h2>روند درصد آخرین و درصد پایانی بازار</h2><canvas id="chartTrendPercent"></canvas></div>
+        <div class="panel"><h2>روند ارزش معاملات</h2><canvas id="chartTrendValue"></canvas></div>
+        <div class="panel"><h2>تعداد نمادهای ورود/خروج برآورد پول درشت</h2><canvas id="chartTrendCounts"></canvas></div>
+      </div>
+    </section>
+    <section id="groups" class="page">
+      <div class="hintBox">برای مشاهده جزئیات، روی گروه موردنظر کلیک کن.</div>
+      <div id="groupCards" class="groupSummary"></div>
+      <div class="grid2 mt">
+        <div class="panel"><h2>ارزش معاملات صنعت‌ها و صندوق سهامی</h2><canvas id="chartGroupValue"></canvas></div>
+        <div class="panel"><h2>پول حقیقی صنعت‌ها و صندوق سهامی</h2><canvas id="chartGroupMoney"></canvas></div>
+      </div>
+      <div class="tableWrap mt"><table>
+        <thead><tr><th>گروه/صنعت</th><th>تعداد نماد</th><th>ارزش معاملات</th><th>پول حقیقی</th><th>برآورد پول درشت</th><th>آخرین٪</th><th>پایانی٪</th><th>اختلاف</th></tr></thead>
+        <tbody id="groupRows"></tbody>
+      </table></div>
+      <div class="panel mt">
+        <h2 id="selectedGroupTitle">نمادهای گروه انتخاب‌شده</h2>
+        <div class="tableWrap"><table>
+          <thead><tr><th>نماد</th><th>برآورد پول درشت</th><th>پول حقیقی</th><th>آخرین٪</th><th>پایانی٪</th><th>ارزش</th></tr></thead>
+          <tbody id="groupSymbolRows"></tbody>
+        </table></div>
+      </div>
+    </section>
+    <section id="charts" class="page">
+      <div class="chartGrid">
+        <div class="panel"><h2>نمودار جریان پول حقیقی بازار</h2><canvas id="chartFlowRealCharts"></canvas></div>
+        <div class="panel"><h2>نمودار جریان پول درشت بازار</h2><canvas id="chartFlowBigCharts"></canvas></div>
+        <div class="panel"><h2>نمودار ورود/خروج برآورد پول درشت نمادها</h2><canvas id="chartBigFlow"></canvas></div>
+        <div class="panel"><h2>نمودار ورود/خروج پول حقیقی نمادها</h2><canvas id="chartRealFlow"></canvas></div>
+        <div class="panel"><h2>نمودار جنگ آخرین با پایانی</h2><canvas id="chartBattle"></canvas></div>
+        <div class="panel"><h2>روند کل پول حقیقی و برآورد پول درشت</h2><canvas id="chartHistory"></canvas></div>
+      </div>
+    </section>
+    <section id="alerts" class="page">
+      <div class="panel">
+        <h2>خرید/فروش درشت لحظه‌ای بالای ۲ میلیارد تومان</h2>
+        <div class="alertsSplit">
+          <div class="alertColumn buyColumn">
+            <h3>خریدهای درشت بالای ۲ میلیارد <span>تعداد: <b id="alertBuyCount2">۰</b></span></h3>
+            <div id="liveBuyAlerts2" class="alertList alertListCompact"></div>
+          </div>
+          <div class="alertColumn sellColumn">
+            <h3>فروش‌های درشت بالای ۲ میلیارد <span>تعداد: <b id="alertSellCount2">۰</b></span></h3>
+            <div id="liveSellAlerts2" class="alertList alertListCompact"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+</main>
+  <script src="formula-engine.js"></script>
+  <script src="market-session.js"></script>
+  <script src="alert-policy.js"></script>
+  <script src="symbol-trend.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="pro-ui.js"></script>
+</body>
+</html>

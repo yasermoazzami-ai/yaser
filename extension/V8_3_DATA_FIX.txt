@@ -1,0 +1,7 @@
+v8.3 data fix
+
+- GetMarketWatch bulk request now sends paperTypes 1..9 + withBestLimits=false + hEven=0 + RefID=0.
+- Old MarketWatchInit/Plus remain fallback metadata sources.
+- ClientTypeAll remains the bulk client-type source.
+- Before 09:00, money-flow values remain zero and no alert/snapshot is generated, but market rows may still be displayed if the source returns them.
+- When data fetch fails, the status bar now includes the actual source/error instead of a generic message.

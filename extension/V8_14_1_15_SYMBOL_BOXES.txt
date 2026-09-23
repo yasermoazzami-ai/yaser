@@ -1,0 +1,9 @@
+v8.14.1 — 15 visible symbols in the four main lower boxes
+
+Layout-only change:
+- 15 rows requested/rendered for pulse, symbols, and groups lists.
+- Four boxes remain in one row on desktop.
+- Internal spacing/font size reduced.
+- Horizontal scrollbar removed.
+- Inner vertical scrollbar is not needed for the top 15 rows.
+- No formula, alert, ranking, market-monitoring, or data-source logic changed.

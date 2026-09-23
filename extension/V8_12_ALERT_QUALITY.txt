@@ -1,0 +1,9 @@
+v8.12 Alert Quality
+
+- Volume spikes use interval activity, not cumulative-volume percentage.
+- No volume alert from a tiny first print after inactivity.
+- Queue/near-queue symbols require much larger value and trade count.
+- Money/power alerts require meaningful fresh traded value.
+- Crosses require 3 distinct active samples over >=4s plus hysteresis.
+- Big-money trend changes require >=6 history points, >=15s span, stable direction, larger adaptive move, and fresh activity.
+- Big-money formula and UI layout are unchanged.

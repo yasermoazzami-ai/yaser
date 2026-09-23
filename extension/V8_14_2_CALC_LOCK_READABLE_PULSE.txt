@@ -1,0 +1,7 @@
+v8.14.2
+- Root cause fix: daily big-money totals are now deterministic from the current cumulative ClientType snapshot, so they do not depend on when a particular unpacked extension instance started observing the 2-second stream.
+- The 2-second tape model is separated into a 60-second recent pulse signal instead of being accumulated into the daily total.
+- Real-money daily totals remain direct current-snapshot calculations.
+- Pulse is a read-only ranking view and uses one readable 15-row table with four tabs.
+- Removed duplicate sidebar pulse panel.
+- Fetch/runtime path otherwise remains aligned with v8.13.3.

@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "TSETMC Stocks Radar Pro",
+  "version": "8.15.0",
+  "description": "نسخه 8.15.0: پول درشت بر اساس تعریف حقیقی قوی (اختلاف سرانه خرید و فروش)",
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://cdn.tsetmc.com/*",
+    "https://old.tsetmc.com/*",
+    "http://old.tsetmc.com/*",
+    "https://www.tsetmc.com/*",
+    "https://service.tsetmc.com/*",
+    "http://service.tsetmc.com/*"
+  ],
+  "action": {
+    "default_title": "TSETMC Stocks Radar Pro"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
