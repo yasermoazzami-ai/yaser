@@ -35,8 +35,9 @@
     </div>
   </header>
   <nav class="tabs proSidebar">
-    <div class="proSideBrand"><span class="proSideLogo">◎</span><div><b>TSETMC Radar</b><small>نسخه 8.15.1</small></div></div>
+    <div class="proSideBrand"><span class="proSideLogo">◎</span><div><b>TSETMC Radar</b><small>نسخه 8.16.0</small></div></div>
     <button class="tab active" data-page="radar"><span class="proNavIcon">⌂</span><span>داشبورد</span></button>
+    <button class="tab" data-page="scan"><span class="proNavIcon">★</span><span>اسکن هوشمند</span></button>
     <button class="tab" data-page="bigmoney"><span class="proNavIcon">◉</span><span>رادار پول</span></button>
     <button class="tab" data-page="symbols"><span class="proNavIcon">◌</span><span>دیدبان</span></button>
     <button class="tab" data-page="groups"><span class="proNavIcon">◔</span><span>گروه‌ها</span></button>
@@ -46,7 +47,7 @@
     <button class="tab" data-page="charts"><span class="proNavIcon">▥</span><span>نمودارها</span></button>
     <div class="proSidebarSpacer"></div>
     <div class="proTrialCard">
-      <div class="proTrialVersion">نسخه آزمایشی 8.15.1</div>
+      <div class="proTrialVersion">نسخه آزمایشی 8.16.0</div>
       <div class="proTrialStatus"><span></span> موتور v7.3 فعال</div>
       <button type="button" class="proUpgradeBtn">ارتقا به نسخه کامل</button>
     </div>
@@ -110,6 +111,27 @@
         <div class="panel"><h2>خروج پول حقیقی</h2><div id="topRealOut" class="list"></div></div>
         <div class="panel"><h2>آخرین قوی‌تر از پایانی</h2><div id="topBattleBuy" class="list"></div></div>
         <div class="panel"><h2>آخرین ضعیف‌تر از پایانی</h2><div id="topBattleSell" class="list"></div></div>
+      </div>
+    </section>
+    <section id="scan" class="page">
+      <div class="panel scanIntro">
+        <h2>اسکن هوشمند روزانه <span id="scanStatus" class="unitHint"></span> <button id="scanReloadBtn" type="button">بارگذاری دوباره تاریخچه</button></h2>
+        <p class="unitHint">پول درشت (حقیقی قوی) = پولی که خریداران با سرانه بالاتر از سرانه فروشندگان جابه‌جا کرده‌اند؛ فقط بخش حقیقی↔حقیقی و فقط وقتی قدرت ≥ ۱٫۳ است.
+        همه جریان‌ها به‌صورت <b>درصد از ارزش معاملات همان نماد</b> و در مقایسه با <b>۲۰ روز گذشته خود نماد</b> سنجیده می‌شوند.
+        امتیاز = ۵۰٪ جریان پول (درشت امروز، درشت ۵روزه، غیرعادی بودن، حقیقی) + ۲۰٪ ارزش نسبی + ۳۰٪ قدرت نسبی و روند.</p>
+      </div>
+      <div id="scanRegime" class="cards mt"></div>
+      <div class="panel mt"><h2>۱۰ نماد برتر ورود پول</h2>
+        <div class="tableWrap"><table>
+          <thead><tr><th>#</th><th>نماد</th><th>امتیاز</th><th>پول درشت امروز</th><th>سرانه و قدرت</th><th>درشت ۵روزه</th><th>غیرعادی (z)</th><th>حقیقی امروز</th><th>ارزش نسبی</th><th>قدرت نسبی / روند</th><th>چرا</th></tr></thead>
+          <tbody id="scanInRows"></tbody>
+        </table></div>
+      </div>
+      <div class="panel mt"><h2>۱۰ نماد برتر خروج پول (هشدار)</h2>
+        <div class="tableWrap"><table>
+          <thead><tr><th>#</th><th>نماد</th><th>امتیاز</th><th>پول درشت امروز</th><th>سرانه و قدرت</th><th>درشت ۵روزه</th><th>غیرعادی (z)</th><th>حقیقی امروز</th><th>ارزش نسبی</th><th>قدرت نسبی / روند</th><th>چرا</th></tr></thead>
+          <tbody id="scanOutRows"></tbody>
+        </table></div>
       </div>
     </section>
     <section id="bigmoney" class="page">
@@ -242,5 +264,7 @@
   <script src="symbol-trend.js"></script>
   <script src="dashboard.js"></script>
   <script src="pro-ui.js"></script>
+  <script src="smart-scan.js"></script>
+  <script src="smart-scan-ui.js"></script>
 </body>
 </html>

@@ -206,3 +206,14 @@ button{transition:.16s ease}button:hover{transform:translateY(-1px);box-shadow:0
   #radar .list .radarInlineTrend .symbolTrendMetric .metricSpark,
   #radar .list .radarInlineTrend .symbolTrendMetric .trendNoLine{width:74px}
 }
+
+/* v8.16 smart scan */
+.scanScore{font-size:1.15em}
+#scanReloadBtn{margin-inline-start:8px;font-size:.8em}
+.scanIntro p{line-height:1.9;margin:6px 0 0}
+#scan .tableWrap, #scan table, #scan tbody tr, #scan td { background: transparent !important; color: inherit; }
+#scan th { opacity: .85; color: inherit; }
+#scan h2, #scan .scanScore { color: inherit; opacity: 1; }
+#scan td { vertical-align: top; border-bottom: 1px solid rgba(127,127,127,.2); }
+#scan td.pos, #scan b.pos { color: #16a34a; } #scan td.neg, #scan b.neg { color: #dc2626; }
+#scan td a{color:#2563eb;font-weight:700}

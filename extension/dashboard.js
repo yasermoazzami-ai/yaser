@@ -1,4 +1,4 @@
-const APP_VERSION = '8.15.1-smt-strong-real-corrected'; // base: 7.3.0-main-radar-trends
+const APP_VERSION = '8.16.0-smart-scan'; // base: 7.3.0-main-radar-trends
 const $ = id => document.getElementById(id);
 const $$ = sel => [...document.querySelectorAll(sel)];
 
