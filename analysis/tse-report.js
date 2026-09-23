@@ -111,8 +111,9 @@ function technicals(bars) {
   // one price, so high == low. Indicators and ATR understate risk on such symbols and a
   // stop cannot be executed inside a sell queue.
   const lockedDays20 = bars.slice(-20).filter(b => b.high === b.low).length;
+  const sellQueueDays5 = bars.slice(-5).filter((b, k, arr) => b.high === b.low && b.close < (k ? arr[k - 1].close : close[n - 6])).length;
   return {
-    lockedDays20,
+    lockedDays20, sellQueueDays5, rsiPrev3: r[i - 3], rsiMin10: Math.min(...r.slice(-10).filter(isNum)),
     close: c,
     lastDate: bars[i].d,
     chg1d: pct(c, close[i - 1]),
@@ -398,6 +399,26 @@ function symbolCard(r) {
   return lines.join('\n');
 }
 
+// Oversold (low RSI) screen: a low RSI alone is not a buy; separate likely rebounds
+// from stocks that are still falling.
+function oversold(ok, maxRsi = 35) {
+  return ok.filter(r => r.tech.rsi < maxRsi).map(r => {
+    const t = r.tech, f = r.flow, fd = r.fund;
+    const good = [], bad = [];
+    if (isNum(t.sma200) && t.close > t.sma200) good.push('بالای MA200'); else bad.push('زیر MA200');
+    if (fd.pe > 0 && (!isNum(fd.sectorPE) || fd.pe <= fd.sectorPE * 1.1) && fd.pe <= 20) good.push(`P/E ${fa(fd.pe, 1)}`); else bad.push(fd.pe > 0 ? `P/E ${fa(fd.pe, 1)}` : 'بدون EPS');
+    if (f && f.netReal5 > 0) good.push('ورود حقیقی ۵ر'); else bad.push('خروج حقیقی ۵ر');
+    if (f && f.power1 > 1.2) good.push(`قدرت خریدار ${fa(f.power1, 1)}`);
+    if (t.rsi > t.rsiPrev3 && t.rsiMin10 < t.rsi) good.push('RSI برگشته'); else bad.push('RSI هنوز نزولی');
+    if (t.divergence && t.divergence.type === 'bullish') good.push('واگرایی مثبت');
+    if (t.sellQueueDays5 > 0) bad.push(`${fa(t.sellQueueDays5)} روز صف فروش`);
+    if (r.liquidityB < 3) bad.push('نقدشوندگی پایین');
+    const q = good.length - bad.length;
+    const label = q >= 3 && !(t.sellQueueDays5 > 1) && fd.pe > 0 ? 'کاندید برگشت' : q <= -2 || t.sellQueueDays5 > 1 ? 'در حال ریزش؛ صبر' : 'منتظر تأیید';
+    return { r, q, good, bad, label };
+  }).sort((a, b) => b.q - a.q || a.r.tech.rsi - b.r.tech.rsi);
+}
+
 function renderReport(data, results, indexT, eqT, opts) {
   const ok = results.filter(r => r.tech).sort((a, b) => b.score - a.score);
   const skipped = results.filter(r => r.skipped);
@@ -433,9 +454,29 @@ function renderReport(data, results, indexT, eqT, opts) {
   md.push(`## ۳. تحلیل نمادها (اول سیگنال‌های ورود، سپس بقیه به ترتیب امتیاز)`);
   for (const r of cards) md.push(symbolCard(r));
 
+  const osAll = oversold(ok, 45);
+  const os = osAll.filter(o => o.r.tech.rsi < 35);
+  const pull = osAll.filter(o => o.r.tech.rsi >= 35 && isNum(o.r.tech.sma200) && o.r.tech.close > o.r.tech.sma200 && o.r.tech.sma50 > o.r.tech.sma200 && o.label !== 'در حال ریزش؛ صبر');
+  const lowRsiRow = o => {
+    const t = o.r.tech;
+    return `| ${o.r.symbol} | ${o.r.fund.sectorName} | ${fa(t.close)} | ${fa(t.rsi, 1)} | ${o.label} | ${o.good.join('، ') || '—'} | ${o.bad.join('، ') || '—'} | ${t.support1 ? fa(t.support1.price) : '—'} | ${fa(o.r.plan.stop)} | ${fa(o.r.plan.target1)} | ${fa(o.r.plan.rr, 1)} |`;
+  };
+  const lowRsiHead = ['| نماد | گروه | قیمت | RSI | وضعیت | نقاط مثبت | نقاط منفی | حمایت | حد ضرر | هدف ۱ | R/R |', '|---|---|---|---|---|---|---|---|---|---|---|'];
+  if (os.length) {
+    const cnt = k => os.filter(o => o.label === k).length;
+    md.push(`## ۴. سهم‌های RSI پایین (زیر ۳۵ — اشباع فروش)`);
+    md.push(`${fa(os.length)} سهم: ${fa(cnt('کاندید برگشت'))} کاندید برگشت · ${fa(cnt('منتظر تأیید'))} منتظر تأیید · ${fa(cnt('در حال ریزش؛ صبر'))} در حال ریزش. RSI پایین به‌تنهایی سیگنال خرید نیست؛ «کاندید برگشت» یعنی روند بلندمدت، ارزش و پول هم تأیید می‌کنند.\n`);
+    md.push(...lowRsiHead, ...os.map(lowRsiRow), '');
+  }
+  if (pull.length) {
+    md.push(`### پولبک در روند صعودی (RSI بین ۳۵ و ۴۵، بالای MA200 و MA50 > MA200)`);
+    md.push(`${fa(pull.length)} سهم که در روند بلندمدت صعودی‌اند و اصلاح کرده‌اند؛ مرتب بر اساس کیفیت (بیشترین نقاط مثبت).\n`);
+    md.push(...lowRsiHead, ...pull.map(lowRsiRow), '');
+  }
+
   const avoid = ok.filter(r => r.signal === 'اجتناب').slice(-15).reverse();
   if (avoid.length) {
-    md.push(`## ۴. نمادهای ضعیف (اجتناب)`);
+    md.push(`## ۵. نمادهای ضعیف (اجتناب)`);
     md.push(avoid.map(r => `- **${r.symbol}** — امتیاز ${fa(r.score)}${r.flags.length ? ` · ${r.flags.join('، ')}` : ''}`).join('\n') + '\n');
   }
   const funds = skipped.filter(s => s.fund), short = skipped.filter(s => !s.fund);
@@ -464,7 +505,7 @@ function toCsv(results) {
     ['trend', r => round(r.parts.trend)], ['momentum', r => round(r.parts.momentum)], ['money', r => round(r.parts.money)], ['value', r => round(r.parts.value)],
     ['close', r => r.tech.close], ['lastDate', r => r.tech.lastDate], ['ret5', r => round(r.tech.ret5)], ['ret20', r => round(r.tech.ret20)], ['ret60', r => round(r.tech.ret60)],
     ['rs60', r => round(r.rs60)], ['vsSma20', r => round(r.tech.vsSma20)], ['vsSma50', r => round(r.tech.vsSma50)], ['vsSma200', r => round(r.tech.vsSma200)],
-    ['rsi', r => round(r.tech.rsi)], ['macdAboveSignal', r => r.tech.macd > r.tech.macdSignal], ['adx', r => round(r.tech.adx)], ['atrPct', r => round(r.tech.atrPct, 2)],
+    ['rsi', r => round(r.tech.rsi)], ['lockedDays20', r => r.tech.lockedDays20], ['sellQueueDays5', r => r.tech.sellQueueDays5], ['macdAboveSignal', r => r.tech.macd > r.tech.macdSignal], ['adx', r => round(r.tech.adx)], ['atrPct', r => round(r.tech.atrPct, 2)],
     ['cloud', r => r.tech.cloud], ['fromHigh52', r => round(r.tech.fromHigh52)], ['volRatio', r => round(r.tech.volRatio, 2)],
     ['support1', r => r.tech.support1 && Math.round(r.tech.support1.price)], ['resistance1', r => r.tech.resistance1 && Math.round(r.tech.resistance1.price)],
     ['netReal5B', r => r.flow && round(r.flow.netReal5, 2)], ['netReal20B', r => r.flow && round(r.flow.netReal20, 2)], ['power5', r => r.flow && round(r.flow.power5, 2)],
@@ -514,4 +555,4 @@ if (require.main === module) {
   console.log(`${out.ok.length} symbols analysed → ${opts.out}/report.md, metrics.csv, metrics.json`);
 }
 
-module.exports = { loadExport, adjustPrices, technicals, moneyFlow, fundamentals, analyzeSymbol, analyzeIndex, tradePlan, run, toCsv };
+module.exports = { oversold, loadExport, adjustPrices, technicals, moneyFlow, fundamentals, analyzeSymbol, analyzeIndex, tradePlan, run, toCsv };
