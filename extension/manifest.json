@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TSETMC Stocks Radar Pro",
-  "version": "8.16.0",
-  "description": "نسخه 8.16.0: اسکن هوشمند روزانه (جریان پول نرمال‌شده + ارزش نسبی + قدرت نسبی) و پول درشت حقیقی قوی",
+  "version": "8.17.0",
+  "description": "نسخه 8.17.0: خروجی داده (قیمت، حقیقی/حقوقی، EPS و کدال) برای تحلیل فنی و بنیادی + اسکن هوشمند روزانه",
   "permissions": [
     "storage",
     "tabs"
@@ -13,7 +13,10 @@
     "http://old.tsetmc.com/*",
     "https://www.tsetmc.com/*",
     "https://service.tsetmc.com/*",
-    "http://service.tsetmc.com/*"
+    "http://service.tsetmc.com/*",
+    "https://search.codal.ir/*",
+    "https://excel.codal.ir/*",
+    "https://codal.ir/*"
   ],
   "action": {
     "default_title": "TSETMC Stocks Radar Pro"

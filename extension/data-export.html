@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>خروجی داده برای تحلیل</title>
+  <link rel="stylesheet" href="data-export.css">
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>خروجی داده برای تحلیل فنی و بنیادی</h1>
+      <p class="hint">داده‌ها با IP خود شما از TSETMC و کدال خوانده می‌شوند و در یک فایل فشرده (<code>.json.gz</code>) ذخیره می‌شوند. همان فایل را برای تحلیل بفرستید.</p>
+      <a class="back" href="dashboard.html">بازگشت به داشبورد</a>
+    </header>
+
+    <section class="card">
+      <h2>۱. انتخاب نمادها</h2>
+      <label class="row"><input type="radio" name="mode" value="watchlist" checked> فهرست نمادهای من</label>
+      <textarea id="symbols" rows="3" placeholder="مثال: فملی، فولاد، کگهر، شپنا، تاپیکو، ددام، وتجارت">فملی فولاد کگهر کچاد شپنا شبندر تاپیکو پارس ددام دحاوی وتجارت شستا</textarea>
+      <label class="row"><input type="radio" name="mode" value="market"> کل بازار (سهام بورس و فرابورس) — پرمعامله‌ترین
+        <input id="topN" type="number" min="20" max="1000" value="300"> نماد</label>
+    </section>
+
+    <section class="card">
+      <h2>۲. تنظیمات</h2>
+      <label class="row">تعداد روزهای معاملاتی تاریخچه: <input id="days" type="number" min="60" max="1500" value="320"></label>
+      <label class="row"><input id="withClient" type="checkbox" checked> تاریخچه حقیقی/حقوقی (ورود پول)</label>
+      <label class="row"><input id="withCodal" type="checkbox" checked> کدال: فهرست گزارش‌های ماهانه و صورت‌های مالی + جدول دو گزارش ماهانه آخر <span class="hint">(فقط تا ۶۰ نماد)</span></label>
+      <label class="row">درخواست هم‌زمان: <input id="concurrency" type="number" min="1" max="8" value="4"></label>
+    </section>
+
+    <section class="card">
+      <div class="actions">
+        <button id="startBtn" type="button">شروع دریافت</button>
+        <button id="stopBtn" type="button" disabled>توقف</button>
+        <button id="downloadBtn" type="button" disabled>دانلود فایل</button>
+      </div>
+      <progress id="progress" max="100" value="0"></progress>
+      <div id="status" class="status">آماده.</div>
+      <pre id="log" class="log"></pre>
+    </section>
+  </main>
+  <script src="export-core.js"></script>
+  <script src="data-export.js"></script>
+</body>
+</html>
