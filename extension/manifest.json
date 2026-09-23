@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TSETMC Stocks Radar Pro",
-  "version": "8.15.0",
-  "description": "نسخه 8.15.0: پول درشت بر اساس تعریف حقیقی قوی (اختلاف سرانه خرید و فروش)",
+  "version": "8.15.1",
+  "description": "نسخه 8.15.1: پول درشت بر اساس تعریف حقیقی قوی (اختلاف سرانه، با اصلاح حقوقی و حد قدرت ۱.۳)",
   "permissions": [
     "storage",
     "tabs"

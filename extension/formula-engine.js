@@ -84,20 +84,30 @@
     return avg >= LARGE_ORDER_MIN_B ? 1 : 0;
   }
 
-  // "حقیقی قوی" (Smart Money Tracker definition): the money brought in by real
-  // buyers above the sellers' per-capita, or taken out by real sellers above the
-  // buyers' per-capita. Only one side is non-zero.
-  //   strongIn  = BuyCountI  × (buyPerCapita  − sellPerCapita)
-  //   strongOut = SellCountI × (sellPerCapita − buyPerCapita)
-  function smartMoneySMT({ buyValueB, sellValueB, buyCountI, sellCountI } = {}) {
+  // "حقیقی قوی" (Smart Money Tracker definition), with two corrections:
+  //   raw:       strongIn = BuyCountI × (buyPerCapita − sellPerCapita) = RealBuy × (1 − 1/buyerPower)
+  //   1) legal correction: only the real↔real matched part min(RealBuy, RealSell) can be a
+  //      transfer from weak to strong real hands; real money bought from/sold to legal
+  //      entities is already shown in «پول حقیقی» and is not counted again.
+  //   2) dead zone: per-capita differences below SMT_MIN_POWER (1.3×) are noise → 0.
+  //   strongIn  = min(B,S) × (1 − sellPerCapita/buyPerCapita)   when buyPower  ≥ SMT_MIN_POWER
+  //   strongOut = min(B,S) × (1 − buyPerCapita/sellPerCapita)   when sellPower ≥ SMT_MIN_POWER
+  // With B = S and minPower = 1 this is exactly the channel formula.
+  const SMT_MIN_POWER = 1.3;
+  function smartMoneySMT({ buyValueB, sellValueB, buyCountI, sellCountI } = {}, options = {}) {
     const B = n(buyValueB), S = n(sellValueB), nb = n(buyCountI), ns = n(sellCountI);
     if (!(B > 0 && S > 0 && nb > 0 && ns > 0)) {
-      return { buyPerCapitaB: 0, sellPerCapitaB: 0, strongInB: 0, strongOutB: 0, strongNetB: 0, valid: false };
+      return { buyPerCapitaB: 0, sellPerCapitaB: 0, matchedB: 0, strongInB: 0, strongOutB: 0, strongNetB: 0, rawNetB: 0, valid: false };
     }
+    const minPower = Math.max(1, Number.isFinite(Number(options.minPower)) ? Number(options.minPower) : SMT_MIN_POWER);
+    const legalAdjust = options.legalAdjust !== false;
     const bpc = B / nb, spc = S / ns;
-    const strongInB = bpc > spc ? Math.min(B, nb * (bpc - spc)) : 0;
-    const strongOutB = spc > bpc ? Math.min(S, ns * (spc - bpc)) : 0;
-    return { buyPerCapitaB: bpc, sellPerCapitaB: spc, strongInB, strongOutB, strongNetB: strongInB - strongOutB, valid: true };
+    const matchedB = Math.min(B, S);
+    const rawNetB = bpc > spc ? nb * (bpc - spc) : -(ns * (spc - bpc));
+    let strongInB = 0, strongOutB = 0;
+    if (bpc / spc >= minPower) strongInB = (legalAdjust ? matchedB : B) * (1 - spc / bpc);
+    else if (spc / bpc >= minPower) strongOutB = (legalAdjust ? matchedB : S) * (1 - bpc / spc);
+    return { buyPerCapitaB: bpc, sellPerCapitaB: spc, matchedB, strongInB, strongOutB, strongNetB: strongInB - strongOutB, rawNetB, valid: true };
   }
 
   function computeClientMetrics({ client, market, priceRial, preferDirectValues = true } = {}) {
@@ -369,7 +379,7 @@
     resolveFlowPriceRial,
     ratio,
     largeOrderShare,
-    smartMoneySMT,
+    SMT_MIN_POWER, smartMoneySMT,
     computeClientMetrics,
     intervalFlowDelta,
     percentile, adaptiveTapeThreshold, estimateTapeClientFlow, estimateCumulativeLargePrior,

@@ -143,13 +143,28 @@ test('v8.15 big money follows the SMT "strong real" definition (channel tables)'
   assert.ok(Math.abs(out.strongNetB + 40) < 1e-9);
 });
 
-test('v8.15 computeClientMetrics bigMoneyB = buyCount × (buy per-capita − sell per-capita)', () => {
-  // خگستر example (1 unit = 1 B rial): per-capita 1.36 vs 0.66 with 1889 buyers
+test('v8.15.1 SMT corrections: legal-funded real buying and small power are not "strong"', () => {
+  // real bought 100 but only 40 came from real sellers (60 from legal): only 40 is matched
+  const a = F.smartMoneySMT({ buyValueB:100, sellValueB:40, buyCountI:50, sellCountI:20 }); // bpc 2, spc 2 → power 1
+  assert.equal(a.strongNetB, 0);
+  const b = F.smartMoneySMT({ buyValueB:100, sellValueB:40, buyCountI:25, sellCountI:20 }); // bpc 4, spc 2
+  assert.ok(Math.abs(b.strongInB - 40 * 0.5) < 1e-9);
+  assert.ok(Math.abs(b.rawNetB - 50) < 1e-9);
+  // power 1.2 is inside the dead zone
+  assert.equal(F.smartMoneySMT({ buyValueB:120, sellValueB:120, buyCountI:100, sellCountI:120 }).strongNetB, 0);
+  // opting out of both corrections reproduces the raw channel formula
+  assert.ok(Math.abs(F.smartMoneySMT({ buyValueB:100, sellValueB:40, buyCountI:25, sellCountI:20 }, { minPower:1, legalAdjust:false }).strongInB - 50) < 1e-9);
+});
+
+test('v8.15 computeClientMetrics bigMoneyB = matched × (1 − 1/buyPower)', () => {
+  // خگستر-like: per-capita 1.36 vs 0.66 B rial, real buy = real sell
+  const nb = 1889, B = 1.36 * nb, ns = Math.round(B / 0.66);
   const x = F.computeClientMetrics({
-    client: { buy_I_Value:1.36e9*1889, sell_I_Value:0.66e9*1000, buy_I_Count:1889, sell_I_Count:1000 },
+    client: { buy_I_Value:B*1e9, sell_I_Value:B*1e9, buy_I_Count:nb, sell_I_Count:ns },
     priceRial: 1000
   });
-  assert.ok(Math.abs(x.bigMoneyB - 0.70*1889) < 1e-6);
+  const spc = B / ns;
+  assert.ok(Math.abs(x.bigMoneyB - nb * (1.36 - spc)) < 1e-6);
   assert.equal(x.bigSellB, 0);
   assert.ok(x.bigBuyB <= x.individualBuyB);
 });

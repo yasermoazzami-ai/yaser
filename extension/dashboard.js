@@ -1,4 +1,4 @@
-const APP_VERSION = '8.15.0-smt-strong-real'; // base: 7.3.0-main-radar-trends
+const APP_VERSION = '8.15.1-smt-strong-real-corrected'; // base: 7.3.0-main-radar-trends
 const $ = id => document.getElementById(id);
 const $$ = sel => [...document.querySelectorAll(sel)];
 
@@ -1014,7 +1014,7 @@ function renderBigMoney(){
   let rows = filteredBaseRows('bigSearchInput');
   const g = $('bigGroupSelect')?.value || 'all'; if(g !== 'all') rows = rows.filter(x => x.assetGroup === g);
   rows.sort(sorter($('bigModeSelect').value));
-  $('bigRows').innerHTML = rows.length ? rows.slice(0,1200).map(x=>`<tr><td><b>${symbolLink(x)}</b><br><small>${esc(x.fullName||'')}</small></td><td><span class="badge">${esc(x.assetGroup||'')}</span></td><td class="${cls(x.bigMoneyB)}"><b>${moneyUnit(x.bigMoneyB)}</b><br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)}</small></td><td class="${cls(x.realMoneyB)}">${moneyUnit(x.realMoneyB)}</td><td>${moneyUnit(x.buyAvgOrderB)}</td><td>${moneyUnit(x.sellAvgOrderB)}</td><td>${nf(x.buyPower)}×</td><td>${nf(x.sellPower)}×</td><td>${pct(x.gap)}</td></tr>`).join('') : '<tr><td colspan="9" class="empty">داده‌ای برای نمایش نیست.</td></tr>';
+  $('bigRows').innerHTML = rows.length ? rows.slice(0,1200).map(x=>`<tr><td><b>${symbolLink(x)}</b><br><small>${esc(x.fullName||'')}</small></td><td><span class="badge">${esc(x.assetGroup||'')}</span></td><td class="${cls(x.bigMoneyB)}"><b>${moneyUnit(x.bigMoneyB)}</b><br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)} | خام کانال ${moneyUnit(x.smtRawNetB||0)}</small></td><td class="${cls(x.realMoneyB)}">${moneyUnit(x.realMoneyB)}</td><td>${moneyUnit(x.buyAvgOrderB)}</td><td>${moneyUnit(x.sellAvgOrderB)}</td><td>${nf(x.buyPower)}×</td><td>${nf(x.sellPower)}×</td><td>${pct(x.gap)}</td></tr>`).join('') : '<tr><td colspan="9" class="empty">داده‌ای برای نمایش نیست.</td></tr>';
 }
 function renderBattle(){
   let rows = filteredBaseRows('battleSearchInput');
@@ -1649,7 +1649,7 @@ function renderBigMoney(){
   const body = $('bigRows'); if(!body) return;
   body.innerHTML = rows.length ? rows.slice(0,1200).map(x=>{
     const h = hotForRow(x);
-    return `<tr><td><b>${symbolLink(x)}</b><br><small>${esc(x.fullName||'')}</small></td><td><span class="badge">${esc(x.assetGroup||'')}</span></td><td class="${cls(x.bigMoneyB)}"><b>${moneyUnit(x.bigMoneyB)}</b><br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)}</small></td><td class="${cls(x.realMoneyB)}">${moneyUnit(x.realMoneyB)}</td>${hotMoneyCell(h)}<td>${moneyUnit(x.buyAvgOrderB)}</td><td>${moneyUnit(x.sellAvgOrderB)}</td><td>${nf(x.buyPower)}×</td><td>${nf(x.sellPower)}×</td><td>${pct(x.gap)}</td></tr>`;
+    return `<tr><td><b>${symbolLink(x)}</b><br><small>${esc(x.fullName||'')}</small></td><td><span class="badge">${esc(x.assetGroup||'')}</span></td><td class="${cls(x.bigMoneyB)}"><b>${moneyUnit(x.bigMoneyB)}</b><br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)} | خام کانال ${moneyUnit(x.smtRawNetB||0)}</small></td><td class="${cls(x.realMoneyB)}">${moneyUnit(x.realMoneyB)}</td>${hotMoneyCell(h)}<td>${moneyUnit(x.buyAvgOrderB)}</td><td>${moneyUnit(x.sellAvgOrderB)}</td><td>${nf(x.buyPower)}×</td><td>${nf(x.sellPower)}×</td><td>${pct(x.gap)}</td></tr>`;
   }).join('') : '<tr><td colspan="16" class="empty">داده‌ای برای نمایش نیست.</td></tr>';
   renderHotMoneyStatus();
 }
@@ -1696,7 +1696,7 @@ function renderBigMoney(){
     const h = hotForRow(x);
     return `<tr><td><b>${symbolLink(x)}</b><br><small>${esc(x.fullName||'')}</small></td>`+
       `<td><span class="badge">${esc(x.assetGroup||'')}</span></td>`+
-      `<td class="${cls(x.bigMoneyB)}"><b>${moneyUnit(x.bigMoneyB)}</b><br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)}</small></td>`+
+      `<td class="${cls(x.bigMoneyB)}"><b>${moneyUnit(x.bigMoneyB)}</b><br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)} | خام کانال ${moneyUnit(x.smtRawNetB||0)}</small></td>`+
       `<td class="${cls(x.realMoneyB)}">${moneyUnit(x.realMoneyB)}</td>`+
       hotMoneyCell(h)+
       `<td>${moneyUnit(x.buyAvgOrderB)}</td><td>${moneyUnit(x.sellAvgOrderB)}</td><td>${nf(x.buyPower)}×</td><td>${nf(x.sellPower)}×</td><td>${pct(x.gap)}</td></tr>`;
@@ -1850,7 +1850,7 @@ function renderBigMoney(){
     const h = hotForRow(x);
     return `<tr><td><b>${symbolLink(x)}</b><br><small>${esc(x.fullName||'')}</small></td>`+
       `<td><span class="badge">${esc(x.assetGroup||'')}</span></td>`+
-      `<td class="${cls(x.bigMoneyB)}"><b>${moneyUnit(x.bigMoneyB)}</b><br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)}</small></td>`+
+      `<td class="${cls(x.bigMoneyB)}"><b>${moneyUnit(x.bigMoneyB)}</b><br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)} | خام کانال ${moneyUnit(x.smtRawNetB||0)}</small></td>`+
       `<td class="${cls(x.realMoneyB)}">${moneyUnit(x.realMoneyB)}</td>`+
       hotMoneyCell(h)+
       `<td>${moneyUnit(x.buyAvgOrderB)}</td><td>${moneyUnit(x.sellAvgOrderB)}</td><td>${nf(x.buyPower)}×</td><td>${nf(x.sellPower)}×</td><td>${pct(x.gap)}</td></tr>`;
@@ -2030,7 +2030,7 @@ function renderBigMoney(){
     const h = hotForRow(x);
     return `<tr><td><b>${symbolLink(x)}</b><br><small>${esc(x.fullName||'')}</small></td>`+
       `<td><span class="badge">${esc(x.assetGroup||'')}</span></td>`+
-      `<td class="${cls(x.bigMoneyB)}"><b>${moneyUnit(x.bigMoneyB)}</b><br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)}</small></td>`+
+      `<td class="${cls(x.bigMoneyB)}"><b>${moneyUnit(x.bigMoneyB)}</b><br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)} | خام کانال ${moneyUnit(x.smtRawNetB||0)}</small></td>`+
       `<td>${miniBigTrendSpark(x)}</td>`+
       `<td class="${cls(x.realMoneyB)}">${moneyUnit(x.realMoneyB)}</td>`+
       hotMoneyCell(h)+
@@ -3531,6 +3531,8 @@ function applyBigMoneySnapshotFormulaV811(rows, sessionDate, now=Date.now()){
       const prior = smt
         ? { bigBuyB:smt.strongInB, bigSellB:smt.strongOutB, confidence:smt.valid ? 1 : 0 }
         : { bigBuyB:Math.max(0,Number(r.bigBuyB||0)), bigSellB:Math.max(0,Number(r.bigSellB||0)), confidence:0 };
+      r.smtRawNetB = Number(smt?.rawNetB || 0);
+
       const dailyBuy = Math.max(0,Number(prior.bigBuyB||0));
       const dailySell = Math.max(0,Number(prior.bigSellB||0));
       r.bigBuyB = dailyBuy;
@@ -3963,7 +3965,7 @@ function v666RenderBigMoneyCell(x){
   const inst = Number(x._instantBigB || 0);
   const daily = Number(x.bigMoneyB || 0);
   const extra = inst ? `<br><small class="${cls(inst)}">تغییر لحظه‌ای پول درشت ${moneyUnit(inst)}</small>` : '';
-  return `<b>${moneyUnit(daily)}</b>${extra}<br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)}</small>`;
+  return `<b>${moneyUnit(daily)}</b>${extra}<br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)} | خام کانال ${moneyUnit(x.smtRawNetB||0)}</small>`;
 }
 function renderReport(){
   const rows = v662MarketRows(state.rows || []);
@@ -4100,7 +4102,7 @@ function v667RenderBigMoneyCell(x){
     ? `<br><small class="${cls(x._displayBig.value)}">مبنای فیلتر: ${x._displayBig.source === 'instant' ? 'لحظه‌ای' : 'امروز'} ${moneyUnit(x._displayBig.value)}</small>`
     : '';
   const extra = inst ? `<br><small class="${cls(inst)}">تغییر لحظه‌ای پول درشت ${moneyUnit(inst)}</small>` : '';
-  return `<b>${moneyUnit(daily)}</b>${selected}${extra}<br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)}</small>`;
+  return `<b>${moneyUnit(daily)}</b>${selected}${extra}<br><small>خرید درشت ${moneyUnit(x.bigBuyB)} / فروش درشت ${moneyUnit(x.bigSellB)} | خام کانال ${moneyUnit(x.smtRawNetB||0)}</small>`;
 }
 function renderReport(){
   const rows = v662MarketRows(state.rows || []);
