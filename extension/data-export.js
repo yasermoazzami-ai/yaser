@@ -79,6 +79,7 @@ async function searchInstrument(symbol) {
 
 async function resolveSelection(universe) {
   const mode = document.querySelector('input[name=mode]:checked').value;
+  if (mode === 'all') return universe.filter(r => r.equity);
   if (mode === 'market') {
     const topN = Math.max(20, Number($('topN').value) || 300);
     return universe.filter(r => r.equity && r.value > 0).slice(0, topN);
@@ -149,6 +150,15 @@ async function loadCodal(symbol) {
 async function loadSymbol(row, opts) {
   const item = { insCode: row.insCode, symbol: row.symbol, name: row.name, errors: [] };
   try {
+    const json = await fetchJson(`${API}/Instrument/GetInstrumentInfo/${row.insCode}`);
+    item.info = core.compactInfo(json);
+  } catch (e) { item.errors.push(`info: ${e.message}`); }
+  // In market-wide modes, ETFs (sector 68) are not stocks: skip their history to save time.
+  if (opts.skipFunds && item.info && item.info.sectorCode === core.FUND_SECTOR) {
+    item.skipped = 'fund';
+    return item;
+  }
+  try {
     const json = await fetchJson(`${API}/ClosingPrice/GetClosingPriceDailyList/${row.insCode}/0`);
     item.daily = { columns: core.DAILY_COLUMNS, rows: core.compactDaily(json, opts.days) };
     if (!item.daily.rows.length) item.daily.rawSample = JSON.stringify(json).slice(0, 600);
@@ -160,10 +170,6 @@ async function loadSymbol(row, opts) {
       if (!item.client.rows.length) item.client.rawSample = JSON.stringify(json).slice(0, 600);
     } catch (e) { item.errors.push(`client: ${e.message}`); }
   }
-  try {
-    const json = await fetchJson(`${API}/Instrument/GetInstrumentInfo/${row.insCode}`);
-    item.info = core.compactInfo(json);
-  } catch (e) { item.errors.push(`info: ${e.message}`); }
   if (opts.withCodal) item.codal = await loadCodal(row.symbol);
   return item;
 }
@@ -202,7 +208,8 @@ async function start() {
     days: Math.max(60, Number($('days').value) || 320),
     withClient: $('withClient').checked,
     withCodal: $('withCodal').checked,
-    concurrency: Math.min(8, Math.max(1, Number($('concurrency').value) || 4))
+    concurrency: Math.min(8, Math.max(1, Number($('concurrency').value) || 4)),
+    skipFunds: document.querySelector('input[name=mode]:checked').value !== 'watchlist'
   };
   try {
     setStatus('دریافت دیدبان بازار...');
@@ -242,8 +249,9 @@ async function start() {
     lastBlob = blob;
     lastName = `tse-export-${stamp()}.${ext}`;
     $('downloadBtn').disabled = false;
-    const failed = symbols.filter(s => !s.daily || !s.daily.rows.length).length;
-    setStatus(`تمام شد${stopRequested ? ' (متوقف‌شده)' : ''}: ${symbols.length} نماد، ${failed} بدون تاریخچه قیمت. حجم فایل ${(blob.size / 1024 / 1024).toFixed(2)} مگابایت.`);
+    const funds = symbols.filter(s => s.skipped === 'fund').length;
+    const failed = symbols.filter(s => !s.skipped && (!s.daily || !s.daily.rows.length)).length;
+    setStatus(`تمام شد${stopRequested ? ' (متوقف‌شده)' : ''}: ${symbols.length - funds} سهم (${funds} صندوق کنار گذاشته شد)، ${failed} بدون تاریخچه قیمت. حجم فایل ${(blob.size / 1024 / 1024).toFixed(2)} مگابایت.`);
     download();
   } catch (e) {
     setStatus(`خطا: ${e.message}`);

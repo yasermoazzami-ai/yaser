@@ -10,6 +10,7 @@
   // Field aliases follow the same TSETMC CDN schema the dashboard reads (see SOURCES.md).
 
   const SCHEMA_VERSION = 1;
+  const FUND_SECTOR = '68'; // صندوق سرمایه‌گذاری قابل معامله
 
   const DAILY_COLUMNS = ['d', 'open', 'high', 'low', 'close', 'last', 'yesterday', 'vol', 'value', 'count'];
   const CLIENT_COLUMNS = ['d', 'buyIVol', 'sellIVol', 'buyNVol', 'sellNVol', 'buyICount', 'sellICount', 'buyNCount', 'sellNCount', 'buyIVal', 'sellIVal', 'buyNVal', 'sellNVal'];
@@ -219,7 +220,7 @@
   }
 
   return {
-    SCHEMA_VERSION, DAILY_COLUMNS, CLIENT_COLUMNS, INDEX_COLUMNS,
+    SCHEMA_VERSION, FUND_SECTOR, DAILY_COLUMNS, CLIENT_COLUMNS, INDEX_COLUMNS,
     num, pick, findRowArrays, dateKey,
     compactDaily, compactClient, compactIndex, compactInfo,
     isEquityLike, parseUniverse, normalizeSymbol, parseWatchlist,

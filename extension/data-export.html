@@ -16,9 +16,10 @@
 
     <section class="card">
       <h2>۱. انتخاب نمادها</h2>
-      <label class="row"><input type="radio" name="mode" value="watchlist" checked> فهرست نمادهای من</label>
+      <label class="row"><input type="radio" name="mode" value="all" checked> همه سهام بورس و فرابورس <span class="hint">(حدود ۸۰۰ نماد؛ صندوق‌ها، حق‌تقدم‌ها و اوراق حذف می‌شوند؛ ۱۰ تا ۲۰ دقیقه)</span></label>
+      <label class="row"><input type="radio" name="mode" value="watchlist"> فهرست نمادهای من</label>
       <textarea id="symbols" rows="3" placeholder="مثال: فملی، فولاد، کگهر، شپنا، تاپیکو، ددام، وتجارت">فملی فولاد کگهر کچاد شپنا شبندر تاپیکو پارس ددام دحاوی وتجارت شستا</textarea>
-      <label class="row"><input type="radio" name="mode" value="market"> کل بازار (سهام بورس و فرابورس) — پرمعامله‌ترین
+      <label class="row"><input type="radio" name="mode" value="market"> فقط پرمعامله‌ترین
         <input id="topN" type="number" min="20" max="1000" value="300"> نماد</label>
     </section>
 
