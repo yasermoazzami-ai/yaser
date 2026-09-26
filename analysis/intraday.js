@@ -81,13 +81,21 @@ function scan(results, snaps, watch) {
 }
 
 function render(alerts, date, time) {
-  const lines = [`### ${time} — ${fa(alerts.length)} هشدار جدید`];
-  for (const a of alerts) {
+  // Risk-free alerts and watchlist events in detail; risky names collapsed into one line.
+  const isRisky = a => !a.type.startsWith('wl') && ((a.risks && a.risks.length) || (a.tech && a.tech.lockedDays20 >= 6));
+  const clean = alerts.filter(a => !isRisky(a)), risky = alerts.filter(isRisky);
+  const lines = [`### ${time} — ${fa(clean.length)} هشدار کم‌ریسک${risky.length ? ` · ${fa(new Set(risky.map(a => a.symbol)).size)} سهم پرریسک` : ''}`];
+  for (const a of clean) {
     const plan = a.plan ? ` · حد ضرر ${fa(a.plan.stop)} · هدف ${fa(a.plan.target1)}` : '';
     const stats = Number.isFinite(a.valueRatio) ? ` · حجم ${fa(a.valueRatio, 1)}× میانگین · امتیاز ${fa(a.score)}` : '';
-    const warn = [...(a.tech && a.tech.lockedDays20 >= 6 ? ['سهم صفی'] : []), ...(a.risks || [])];
-    const flags = warn.length ? ` · ⚠️ ${warn.join('، ')}` : ' · ✅ بدون پرچم ریسک';
-    lines.push(`- **${a.symbol}** (${a.title}) — ${fa(a.price)} (${sgn(a.pct)}${fa(a.pct, 1)}٪): ${a.detail}${stats}${plan}${flags}`);
+    const ok = a.type.startsWith('wl') ? '' : ' · ✅ بدون پرچم ریسک';
+    lines.push(`- **${a.symbol}** (${a.title}) — ${fa(a.price)} (${sgn(a.pct)}${fa(a.pct, 1)}٪): ${a.detail}${stats}${plan}${ok}`);
+  }
+  if (!clean.length) lines.push('- هیچ سهم کم‌ریسکی در این ساعت سیگنال نداد.');
+  if (risky.length) {
+    const bySym = new Map();
+    for (const a of risky) if (!bySym.has(a.symbol)) bySym.set(a.symbol, `${a.symbol} (${sgn(a.pct)}${fa(a.pct, 1)}٪، ${[...(a.tech && a.tech.lockedDays20 >= 6 ? ['صفی'] : []), ...(a.risks || [])][0] || 'پرریسک'})`);
+    lines.push(`- ⚠️ پرریسک، فقط برای اطلاع: ${[...bySym.values()].join('، ')}`);
   }
   return lines.join('\n') + '\n';
 }
