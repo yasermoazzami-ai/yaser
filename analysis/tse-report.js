@@ -115,6 +115,7 @@ function technicals(bars) {
   return {
     lockedDays20, sellQueueDays5, rsiPrev3: r[i - 3], rsiMin10: Math.min(...r.slice(-10).filter(isNum)),
     close: c,
+    dayHigh: high[i], dayLow: low[i],
     lastDate: bars[i].d,
     chg1d: pct(c, close[i - 1]),
     ret5: pct(c, close[i - 5]), ret20: pct(c, close[i - 20]), ret60: pct(c, close[i - 60]), ret120: pct(c, close[i - 120]),
