@@ -24,8 +24,8 @@ test('jalali conversion around Nowruz and month ends', () => {
 
 test('watchlist adds entry signals, then exits on stop and moves stop after target 1', () => {
   const state = { active: [], closed: [], updated: null };
-  let ch = wl.update(state, [res('الف'), res('ب', { signal: 'زیر نظر' })], [], '2026-09-20');
-  assert.deepEqual(ch.added.map(a => a.symbol), ['الف']);
+  let ch = wl.update(state, [res('الف'), res('ب', { signal: 'زیر نظر', score: 50 }), res('پ', { risks: ['عرضه حقوقی به حقیقی'] })], [], '2026-09-20');
+  assert.deepEqual(ch.added.map(a => a.symbol), ['الف'], 'risk-flagged and low-score symbols stay out');
   assert.equal(state.active[0].stop, 950);
 
   ch = wl.update(state, [res('الف', { tech: { close: 1105, dayHigh: 1110, dayLow: 1090, lastDate: 20260921 } })], [], '2026-09-21');
@@ -37,6 +37,13 @@ test('watchlist adds entry signals, then exits on stop and moves stop after targ
   assert.equal(ch.removed.length, 1);
   assert.match(ch.removed[0].exitReason, /حد ضرر متحرک/);
   assert.equal(state.active.length, 0);
+});
+
+test('watchlist admits a risk-free quality setup without an entry signal', () => {
+  const state = { active: [], closed: [], updated: null };
+  const ch = wl.update(state, [res('ت', { signal: 'زیر نظر', score: 63 }), res('ث', { signal: 'زیر نظر', score: 63, plan: { stop: 950, target1: 1020, target2: 1100, rr: 0.4 } })], [], 'd1');
+  assert.deepEqual(ch.added.map(a => a.symbol), ['ت']);
+  assert.match(ch.added[0].reason, /کم‌ریسک/);
 });
 
 test('watchlist drops a symbol whose signal turns to avoid', () => {

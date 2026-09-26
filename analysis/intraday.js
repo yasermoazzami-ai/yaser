@@ -54,7 +54,7 @@ function scan(results, snaps, watch) {
     const pct = s.changePct;
     const liquid = r.liquidityB >= 3;
     const valueOk = fd.pe > 0 && fd.pe <= 30;
-    const base = { symbol: r.symbol, sector: fd.sectorName, price: s.last, pct, valueRatio, power, netReal, score: Math.round(r.score), time: tehranTime(s.time), plan: r.plan, tech: t };
+    const base = { symbol: r.symbol, sector: fd.sectorName, price: s.last, pct, valueRatio, power, netReal, score: Math.round(r.score), time: tehranTime(s.time), plan: r.plan, tech: t, risks: r.risks || [] };
 
     const r1 = t.resistance1 && t.resistance1.price;
     if (liquid && r1 && t.close < r1 && s.last > r1 * 1.005 && pct > 0 && valueRatio >= 1.2 && power >= 1.2 && r.score >= 50) {
@@ -85,7 +85,8 @@ function render(alerts, date, time) {
   for (const a of alerts) {
     const plan = a.plan ? ` · حد ضرر ${fa(a.plan.stop)} · هدف ${fa(a.plan.target1)}` : '';
     const stats = Number.isFinite(a.valueRatio) ? ` · حجم ${fa(a.valueRatio, 1)}× میانگین · امتیاز ${fa(a.score)}` : '';
-    const flags = a.tech && a.tech.lockedDays20 >= 6 ? ' · ⚠️ سهم صفی' : '';
+    const warn = [...(a.tech && a.tech.lockedDays20 >= 6 ? ['سهم صفی'] : []), ...(a.risks || [])];
+    const flags = warn.length ? ` · ⚠️ ${warn.join('، ')}` : ' · ✅ بدون پرچم ریسک';
     lines.push(`- **${a.symbol}** (${a.title}) — ${fa(a.price)} (${sgn(a.pct)}${fa(a.pct, 1)}٪): ${a.detail}${stats}${plan}${flags}`);
   }
   return lines.join('\n') + '\n';

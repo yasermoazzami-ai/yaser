@@ -274,17 +274,30 @@ function classify(score, t, f, liquidityB, fd, plan) {
   if (fd.pe > 30) flags.push(`P/E بالا (${Math.round(fd.pe)})`);
   const overextended = t.rsi >= 75 || t.vsSma20 > 12;
   const nearResistance = plan.rr < 1.2;
+  // Entry-risk filters: conditions that make a high score unsafe to buy now.
+  const risks = [];
+  if (f && f.netLegal20 < 0 && f.netReal20 > 0 && -f.netLegal20 >= 0.5 * f.netReal20) risks.push(`عرضه حقوقی به حقیقی (${Math.round(f.netLegal20)} میلیارد تومان در ۲۰ روز)`);
+  if (t.vsSma200 > 50) risks.push(`${Math.round(t.vsSma200)}٪ بالای MA200`);
+  else if (t.fromLow52 > 150) risks.push(`${Math.round(t.fromLow52)}٪ بالای کف ۵۲ هفته`);
+  if (f && f.power5 < 0.8) risks.push(`سرانه خرید ضعیف (${f.power5.toFixed(2)})`);
+  if (t.divergence && t.divergence.type === 'bearish') risks.push('واگرایی منفی');
+  if (plan.riskPct > 7) risks.push(`حد ضرر دور (${plan.riskPct.toFixed(1)}٪)`);
+  if (liquidityB < 10) risks.push('نقدشوندگی کمتر از ۱۰ میلیارد تومان');
+  if (isNum(fd.floatPct) && fd.floatPct < 15) risks.push(`شناوری کم (${fd.floatPct}٪)`);
+  if (t.sellQueueDays5 > 0) risks.push('صف فروش در ۵ روز اخیر');
+  for (const r of risks) if (!flags.includes(r)) flags.push(r);
   let signal;
   if (score >= 70 && !(fd.pe > 0 && fd.pe <= 30)) signal = 'زیر نظر';
   else if (score >= 70 && (queueDriven || parabolic)) signal = 'پرریسک؛ صفی/رشد عمودی';
   else if (score >= 70 && !overextended && nearResistance) signal = 'قوی؛ نزدیک مقاومت، منتظر شکست یا پولبک';
+  else if (score >= 70 && !overextended && risks.length) signal = 'قوی ولی پرریسک؛ فعلاً ورود نه';
   else if (score >= 70 && !overextended) signal = 'ورود پله‌ای';
   else if (score >= 70) signal = 'قوی ولی پرشده؛ منتظر پولبک';
   else if (score >= 55) signal = 'زیر نظر';
   else if (score < 40) signal = 'اجتناب';
   else signal = 'خنثی';
   if (t.divergence && t.divergence.type === 'bullish' && score >= 45 && signal !== 'ورود پله‌ای') flags.push('واگرایی مثبت RSI');
-  return { signal, flags };
+  return { signal, flags, risks };
 }
 
 function analyzeIndex(block) {
@@ -494,6 +507,7 @@ function renderReport(data, results, indexT, eqT, opts) {
     '- حمایت/مقاومت: نقاط چرخش فراکتالی (۳ کندل هر طرف) در ۲۵۰ روز اخیر که در بازه ۱.۵٪ ادغام شده‌اند.',
     '- حد ضرر: نیم ATR زیر نزدیک‌ترین حمایت، حداکثر ۲.۵ ATR یا ۱۲٪. هدف‌ها: مقاومت‌های بعدی؛ اگر سهم در سقف باشد ۳ و ۵ ATR.',
     '- سهم صفی (۶ روز یا بیشتر از ۲۰ روز با سقف = کف) یا رشد عمودی (بیش از ۱۰۰٪ در ۶۰ روز یا بیش از ۳۰٪ بالای MA50) سیگنال ورود نمی‌گیرد.',
+    '- فیلتر ریسک ورود: عرضه حقوقی به حقیقی (خروج حقوقی ≥ ۵۰٪ ورود حقیقی ۲۰ روزه)، بیش از ۵۰٪ بالای MA200 یا ۱۵۰٪ بالای کف ۵۲ هفته، سرانه خرید زیر ۰٫۸، واگرایی منفی، حد ضرر بیش از ۷٪، نقدشوندگی زیر ۱۰ میلیارد تومان، شناوری زیر ۱۵٪ یا صف فروش در ۵ روز اخیر ← «قوی ولی پرریسک».',
     '- سیگنال «ورود پله‌ای» فقط وقتی داده می‌شود که امتیاز ≥ ۷۰، RSI < ۷۵، فاصله از MA20 < ۱۲٪، ریسک به ریوارد ≥ ۱.۲ و P/E مثبت و ≤ ۳۰ باشد.',
     '- این گزارش خروجی مکانیکی داده است و توصیه سرمایه‌گذاری نیست. اخبار، مجامع، گزارش‌های کدال و ریسک‌های سیاسی را جداگانه بررسی کنید.'
   ].join('\n'));

@@ -24,10 +24,21 @@ function save(state, file = FILE) {
   fs.writeFileSync(file, JSON.stringify(state, null, 1) + '\n');
 }
 
+// Only low-risk setups enter: no entry-risk flag at all (institutional distribution,
+// extension above MA200/52-week low, weak buyer per capita, bearish divergence, wide
+// stop, thin liquidity or float, recent sell queue), no queue-driven or vertical rally,
+// positive earnings at a sane P/E and reward/risk of at least 1.2.
+const BLOCKING = new Set(['اجتناب', 'پرریسک؛ صفی/رشد عمودی', 'قوی ولی پرریسک؛ فعلاً ورود نه', 'قوی ولی پرشده؛ منتظر پولبک']);
+function lowRisk(r) {
+  return !(r.risks && r.risks.length) && !BLOCKING.has(r.signal) && r.fund.pe > 0 && r.fund.pe <= 20 && r.plan.rr >= 1.2 && r.tech.lockedDays20 < 6;
+}
+
 function candidates(results, oversoldList) {
-  const buys = results.filter(r => r.signal === 'ورود پله‌ای').map(r => ({ r, reason: 'سیگنال ورود پله‌ای' }));
-  const rebounds = (oversoldList || []).filter(o => o.label === 'کاندید برگشت' && o.r.plan.rr >= 1).map(o => ({ r: o.r, reason: `برگشت از RSI پایین (${Math.round(o.r.tech.rsi)})` }));
-  return [...buys, ...rebounds].sort((a, b) => b.r.score - a.r.score);
+  const buys = results.filter(r => r.signal === 'ورود پله‌ای' && lowRisk(r)).map(r => ({ r, reason: 'سیگنال ورود پله‌ای (بدون پرچم ریسک)' }));
+  const quality = results.filter(r => r.signal !== 'ورود پله‌ای' && r.score >= 60 && lowRisk(r)).map(r => ({ r, reason: 'کم‌ریسک: بدون عرضه حقوقی، نزدیک میانگین‌ها، ریسک به ریوارد مناسب' }));
+  const rebounds = (oversoldList || []).filter(o => o.label === 'کاندید برگشت' && lowRisk(o.r)).map(o => ({ r: o.r, reason: `برگشت از RSI پایین (${Math.round(o.r.tech.rsi)})` }));
+  const seen = new Set();
+  return [...buys, ...rebounds, ...quality].filter(c => !seen.has(c.r.symbol) && seen.add(c.r.symbol)).sort((a, b) => b.r.score - a.r.score);
 }
 
 // results: analysed symbols of the day (tse-report analyzeSymbol output), keyed by symbol.
@@ -107,4 +118,4 @@ function render(state, change) {
   return md.join('\n') + '\n';
 }
 
-module.exports = { FILE, load, save, candidates, update, render };
+module.exports = { FILE, load, save, lowRisk, candidates, update, render };
