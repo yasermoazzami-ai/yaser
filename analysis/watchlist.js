@@ -35,7 +35,7 @@ function lowRisk(r) {
 
 function candidates(results, oversoldList) {
   const buys = results.filter(r => r.signal === 'ورود پله‌ای' && lowRisk(r)).map(r => ({ r, reason: 'سیگنال ورود پله‌ای (بدون پرچم ریسک)' }));
-  const quality = results.filter(r => r.signal !== 'ورود پله‌ای' && r.score >= 60 && lowRisk(r)).map(r => ({ r, reason: 'کم‌ریسک: بدون عرضه حقوقی، نزدیک میانگین‌ها، ریسک به ریوارد مناسب' }));
+  const quality = results.filter(r => r.signal !== 'ورود پله‌ای' && r.score >= 60 && lowRisk(r)).map(r => ({ r, reason: 'کم‌ریسک: بدون نشانه توزیع، نزدیک میانگین‌ها، ریسک به ریوارد مناسب' }));
   const rebounds = (oversoldList || []).filter(o => o.label === 'کاندید برگشت' && lowRisk(o.r)).map(o => ({ r: o.r, reason: `برگشت از RSI پایین (${Math.round(o.r.tech.rsi)})` }));
   const seen = new Set();
   return [...buys, ...rebounds, ...quality].filter(c => !seen.has(c.r.symbol) && seen.add(c.r.symbol)).sort((a, b) => b.r.score - a.r.score);

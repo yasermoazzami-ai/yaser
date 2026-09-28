@@ -24,7 +24,7 @@ test('jalali conversion around Nowruz and month ends', () => {
 
 test('watchlist adds entry signals, then exits on stop and moves stop after target 1', () => {
   const state = { active: [], closed: [], updated: null };
-  let ch = wl.update(state, [res('الف'), res('ب', { signal: 'زیر نظر', score: 50 }), res('پ', { risks: ['عرضه حقوقی به حقیقی'] })], [], '2026-09-20');
+  let ch = wl.update(state, [res('الف'), res('ب', { signal: 'زیر نظر', score: 50 }), res('پ', { risks: ['توزیع'] })], [], '2026-09-20');
   assert.deepEqual(ch.added.map(a => a.symbol), ['الف'], 'risk-flagged and low-score symbols stay out');
   assert.equal(state.active[0].stop, 950);
 
@@ -71,6 +71,8 @@ test('applyDay appends one bar and one flow row, and skips days already present'
   assert.equal(data.symbols[0].daily.rows.length, 2);
   assert.deepEqual(data.symbols[0].daily.rows[1].slice(0, 5), [20260923, 100, 105, 99, 103]);
   assert.equal(data.symbols[0].client.rows[0][9], 300);
+  assert.equal(data.symbols[0].client.rows[0][11], 200, 'legal buy derived as total value − real buy');
+  assert.equal(data.symbols[0].client.rows[0][12], 300, 'legal sell derived as total value − real sell');
   assert.equal(data.index.tedpix.rows.length, 2);
 });
 

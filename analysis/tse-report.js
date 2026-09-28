@@ -144,7 +144,8 @@ function moneyFlow(item, bars) {
   if (!rows.length) return null;
   const byDay = rows.slice(-60);
   const netReal = r => (r.buyIVal - r.sellIVal) / B_TOMAN;
-  const netLegal = r => (r.buyNVal - r.sellNVal) / B_TOMAN;
+  // Missing legal values must not count as zero flow.
+  const netLegal = r => (r.buyNVal == null || r.sellNVal == null ? NaN : (r.buyNVal - r.sellNVal) / B_TOMAN);
   const power = r => (r.buyICount > 0 && r.sellICount > 0 && r.sellIVal > 0 ? (r.buyIVal / r.buyICount) / (r.sellIVal / r.sellICount) : NaN);
   const smt = r => smartMoneySMT({ buyValueI: r.buyIVal, sellValueI: r.sellIVal, buyCountI: r.buyICount, sellCountI: r.sellICount }).strongNet / B_TOMAN;
   const lastN = k => byDay.slice(-k);
@@ -158,6 +159,12 @@ function moneyFlow(item, bars) {
     netLegal20: sum(lastN(20).map(netLegal)),
     power1: power(byDay[byDay.length - 1]),
     power5: mean(lastN(5).map(power)),
+    // 20-day aggregate buyer power: average ticket of real buyers vs real sellers.
+    power20: (() => {
+      const r = lastN(20), bc = sum(r.map(x => x.buyICount)), sc = sum(r.map(x => x.sellICount));
+      const bv = sum(r.map(x => x.buyIVal)), sv = sum(r.map(x => x.sellIVal));
+      return bc > 0 && sc > 0 && sv > 0 ? (bv / bc) / (sv / sc) : NaN;
+    })(),
     smt5: sum(lastN(5).map(smt)),
     smt20: sum(lastN(20).map(smt)),
     inflowDays10: lastN(10).filter(r => netReal(r) > 0).length,
@@ -276,7 +283,10 @@ function classify(score, t, f, liquidityB, fd, plan) {
   const nearResistance = plan.rr < 1.2;
   // Entry-risk filters: conditions that make a high score unsafe to buy now.
   const risks = [];
-  if (f && f.netLegal20 < 0 && f.netReal20 > 0 && -f.netLegal20 >= 0.5 * f.netReal20) risks.push(`عرضه حقوقی به حقیقی (${Math.round(f.netLegal20)} میلیارد تومان در ۲۰ روز)`);
+  // Net legal flow is always −(net real flow) (every trade has one buyer and one seller),
+  // so it cannot signal distribution. Distribution shows as real inflow arriving through
+  // many small tickets against fewer, larger sellers: weak 20-day buyer power.
+  if (f && f.netReal20 > 0 && f.power20 < 0.9) risks.push(`توزیع: ورود حقیقی با سرانه خرید ضعیف (${f.power20.toFixed(2)} در ۲۰ روز)`);
   if (t.vsSma200 > 50) risks.push(`${Math.round(t.vsSma200)}٪ بالای MA200`);
   else if (t.fromLow52 > 150) risks.push(`${Math.round(t.fromLow52)}٪ بالای کف ۵۲ هفته`);
   if (f && f.power5 < 0.8) risks.push(`سرانه خرید ضعیف (${f.power5.toFixed(2)})`);
@@ -507,7 +517,7 @@ function renderReport(data, results, indexT, eqT, opts) {
     '- حمایت/مقاومت: نقاط چرخش فراکتالی (۳ کندل هر طرف) در ۲۵۰ روز اخیر که در بازه ۱.۵٪ ادغام شده‌اند.',
     '- حد ضرر: نیم ATR زیر نزدیک‌ترین حمایت، حداکثر ۲.۵ ATR یا ۱۲٪. هدف‌ها: مقاومت‌های بعدی؛ اگر سهم در سقف باشد ۳ و ۵ ATR.',
     '- سهم صفی (۶ روز یا بیشتر از ۲۰ روز با سقف = کف) یا رشد عمودی (بیش از ۱۰۰٪ در ۶۰ روز یا بیش از ۳۰٪ بالای MA50) سیگنال ورود نمی‌گیرد.',
-    '- فیلتر ریسک ورود: عرضه حقوقی به حقیقی (خروج حقوقی ≥ ۵۰٪ ورود حقیقی ۲۰ روزه)، بیش از ۵۰٪ بالای MA200 یا ۱۵۰٪ بالای کف ۵۲ هفته، سرانه خرید زیر ۰٫۸، واگرایی منفی، حد ضرر بیش از ۷٪، نقدشوندگی زیر ۱۰ میلیارد تومان، شناوری زیر ۱۵٪ یا صف فروش در ۵ روز اخیر ← «قوی ولی پرریسک».',
+    '- فیلتر ریسک ورود: توزیع (ورود حقیقی ۲۰ روزه با سرانه خرید ۲۰ روزه زیر ۰٫۹)، بیش از ۵۰٪ بالای MA200 یا ۱۵۰٪ بالای کف ۵۲ هفته، سرانه خرید زیر ۰٫۸، واگرایی منفی، حد ضرر بیش از ۷٪، نقدشوندگی زیر ۱۰ میلیارد تومان، شناوری زیر ۱۵٪ یا صف فروش در ۵ روز اخیر ← «قوی ولی پرریسک».',
     '- سیگنال «ورود پله‌ای» فقط وقتی داده می‌شود که امتیاز ≥ ۷۰، RSI < ۷۵، فاصله از MA20 < ۱۲٪، ریسک به ریوارد ≥ ۱.۲ و P/E مثبت و ≤ ۳۰ باشد.',
     '- این گزارش خروجی مکانیکی داده است و توصیه سرمایه‌گذاری نیست. اخبار، مجامع، گزارش‌های کدال و ریسک‌های سیاسی را جداگانه بررسی کنید.'
   ].join('\n'));

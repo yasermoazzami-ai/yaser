@@ -73,6 +73,11 @@ function applyDay(data, rec, maxDays) {
     if (rows.length && rows[rows.length - 1][0] >= d) continue;
     rows.push([d, x.open, x.high, x.low, x.close, x.last, x.yesterday, x.vol, x.value, x.count]);
     if (maxDays && rows.length > maxDays) rows.splice(0, rows.length - maxDays);
+    // The live snapshots carry only real-investor (حقیقی) flow. Every trade has one buyer
+    // and one seller, so legal (حقوقی) buy = total value − real buy (same for sells/volume).
+    const derive = (tot, real) => (tot > 0 && Number.isFinite(real) ? Math.max(0, tot - real) : null);
+    if (x.lbV == null) { x.lbV = derive(x.value, x.rbV); x.lsV = derive(x.value, x.rsV); }
+    if (x.lbv == null) { x.lbv = derive(x.vol, x.rbv); x.lsv = derive(x.vol, x.rsv); }
     if (s.client) {
       const c = s.client.rows;
       if (!c.length || c[c.length - 1][0] < d) {
