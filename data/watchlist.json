@@ -11,11 +11,11 @@
    "target1": 6800,
    "target2": 7216,
    "rr": 4.52,
-   "score": 78,
+   "score": 76,
    "signal": "قوی ولی پرریسک؛ فعلاً ورود نه",
-   "last": 5950,
-   "days": 3,
-   "lastSeen": 20260928
+   "last": 5860,
+   "days": 4,
+   "lastSeen": 20260929
   },
   {
    "symbol": "اردستان",
@@ -28,11 +28,11 @@
    "target1": 33470,
    "target2": 35550,
    "rr": 1.7,
-   "score": 69,
+   "score": 68,
    "signal": "زیر نظر",
-   "last": 31700,
-   "days": 2,
-   "lastSeen": 20260928
+   "last": 31480,
+   "days": 3,
+   "lastSeen": 20260929
   },
   {
    "symbol": "ولبهمن",
@@ -45,11 +45,11 @@
    "target1": 3570,
    "target2": 3775,
    "rr": 2.79,
-   "score": 86,
+   "score": 87,
    "signal": "قوی ولی پرریسک؛ فعلاً ورود نه",
-   "last": 3085,
-   "days": 1,
-   "lastSeen": 20260928
+   "last": 3176,
+   "days": 2,
+   "lastSeen": 20260929
   },
   {
    "symbol": "واتی",
@@ -62,11 +62,11 @@
    "target1": 7660,
    "target2": 7980,
    "rr": 1.6,
-   "score": 62,
+   "score": 64,
    "signal": "زیر نظر",
-   "last": 7430,
-   "days": 1,
-   "lastSeen": 20260928
+   "last": 7530,
+   "days": 2,
+   "lastSeen": 20260929
   },
   {
    "symbol": "وحکمت",
@@ -79,11 +79,11 @@
    "target1": 1804,
    "target2": 1925,
    "rr": 2.81,
-   "score": 76,
+   "score": 73,
    "signal": "ورود پله‌ای",
-   "last": 1623,
-   "days": 0,
-   "lastSeen": 20260928
+   "last": 1670,
+   "days": 1,
+   "lastSeen": 20260929
   },
   {
    "symbol": "نیشکر",
@@ -96,11 +96,11 @@
    "target1": 69948,
    "target2": 74614,
    "rr": 2.32,
-   "score": 70,
-   "signal": "ورود پله‌ای",
-   "last": 62950,
-   "days": 0,
-   "lastSeen": 20260928
+   "score": 68,
+   "signal": "زیر نظر",
+   "last": 64270,
+   "days": 1,
+   "lastSeen": 20260929
   },
   {
    "symbol": "کانسار",
@@ -115,9 +115,9 @@
    "rr": 1.49,
    "score": 68,
    "signal": "زیر نظر",
-   "last": 14770,
-   "days": 0,
-   "lastSeen": 20260928
+   "last": 14500,
+   "days": 1,
+   "lastSeen": 20260929
   },
   {
    "symbol": "پتوسعه",
@@ -132,9 +132,9 @@
    "rr": 2.01,
    "score": 63,
    "signal": "زیر نظر",
-   "last": 9500,
-   "days": 0,
-   "lastSeen": 20260928
+   "last": 9390,
+   "days": 1,
+   "lastSeen": 20260929
   },
   {
    "symbol": "فولاد",
@@ -147,11 +147,28 @@
    "target1": 3742,
    "target2": 3956,
    "rr": 1.37,
-   "score": 62,
+   "score": 71,
+   "signal": "قوی ولی پرشده؛ منتظر پولبک",
+   "last": 3520,
+   "days": 1,
+   "lastSeen": 20260929
+  },
+  {
+   "symbol": "شیفته",
+   "name": "کشت و صنعت شیفته آرای شرق",
+   "sector": "محصولات غذایی و آشامیدنی به جز قند و شکر",
+   "addedAt": "1405-07-07",
+   "reason": "کم‌ریسک: بدون نشانه توزیع، نزدیک میانگین‌ها، ریسک به ریوارد مناسب",
+   "entry": 15410,
+   "stop": 14857,
+   "target1": 16869,
+   "target2": 17842,
+   "rr": 2.64,
+   "score": 63,
    "signal": "زیر نظر",
-   "last": 3420,
+   "last": 15410,
    "days": 0,
-   "lastSeen": 20260928
+   "lastSeen": 20260929
   }
  ],
  "closed": [
@@ -177,5 +194,5 @@
    "resultPct": -3.532008830022071
   }
  ],
- "updated": "1405-07-06"
+ "updated": "1405-07-07"
 }
