@@ -11,11 +11,11 @@
    "target1": 6800,
    "target2": 7216,
    "rr": 4.52,
-   "score": 55,
-   "signal": "خنثی",
-   "last": 5690,
-   "days": 10,
-   "lastSeen": 20261007
+   "score": 71,
+   "signal": "قوی؛ نزدیک مقاومت، منتظر شکست یا پولبک",
+   "last": 5830,
+   "days": 11,
+   "lastSeen": 20261010
   },
   {
    "symbol": "ولبهمن",
@@ -28,11 +28,11 @@
    "target1": 3570,
    "target2": 3775,
    "rr": 2.79,
-   "score": 83,
+   "score": 73,
    "signal": "قوی؛ نزدیک مقاومت، منتظر شکست یا پولبک",
-   "last": 3490,
-   "days": 8,
-   "lastSeen": 20261007,
+   "last": 3400,
+   "days": 9,
+   "lastSeen": 20261010,
    "hitT1": "1405-07-14"
   },
   {
@@ -46,11 +46,11 @@
    "target1": 1804,
    "target2": 1925,
    "rr": 2.81,
-   "score": 60,
+   "score": 56,
    "signal": "زیر نظر",
-   "last": 1627,
-   "days": 7,
-   "lastSeen": 20261007
+   "last": 1594,
+   "days": 8,
+   "lastSeen": 20261010
   },
   {
    "symbol": "نیشکر",
@@ -63,11 +63,11 @@
    "target1": 69948,
    "target2": 74614,
    "rr": 2.32,
-   "score": 53,
+   "score": 51,
    "signal": "خنثی",
-   "last": 62700,
-   "days": 6,
-   "lastSeen": 20261007
+   "last": 62680,
+   "days": 7,
+   "lastSeen": 20261010
   },
   {
    "symbol": "شیفته",
@@ -80,11 +80,11 @@
    "target1": 16869,
    "target2": 17842,
    "rr": 2.64,
-   "score": 62,
+   "score": 58,
    "signal": "زیر نظر",
-   "last": 16500,
-   "days": 6,
-   "lastSeen": 20261007
+   "last": 16020,
+   "days": 7,
+   "lastSeen": 20261010
   },
   {
    "symbol": "خموتور",
@@ -97,11 +97,11 @@
    "target1": 2681,
    "target2": 2860,
    "rr": 1.81,
-   "score": 66,
+   "score": 63,
    "signal": "زیر نظر",
-   "last": 2579,
-   "days": 5,
-   "lastSeen": 20261007
+   "last": 2508,
+   "days": 6,
+   "lastSeen": 20261010
   },
   {
    "symbol": "بترانس",
@@ -110,15 +110,16 @@
    "addedAt": "1405-07-08",
    "reason": "سیگنال ورود پله‌ای (بدون پرچم ریسک)",
    "entry": 3730,
-   "stop": 3512,
+   "stop": 3730,
    "target1": 4080,
    "target2": 4313,
    "rr": 1.6,
-   "score": 80,
+   "score": 77,
    "signal": "قوی ولی پرشده؛ منتظر پولبک",
-   "last": 4050,
-   "days": 5,
-   "lastSeen": 20261007
+   "last": 4170,
+   "days": 6,
+   "lastSeen": 20261010,
+   "hitT1": "1405-07-18"
   },
   {
    "symbol": "پترول",
@@ -133,9 +134,9 @@
    "rr": 4.78,
    "score": 64,
    "signal": "زیر نظر",
-   "last": 2484,
-   "days": 3,
-   "lastSeen": 20261007
+   "last": 2542,
+   "days": 4,
+   "lastSeen": 20261010
   },
   {
    "symbol": "شپاس",
@@ -148,11 +149,11 @@
    "target1": 54831,
    "target2": 58125,
    "rr": 3.14,
-   "score": 68,
-   "signal": "زیر نظر",
-   "last": 52860,
-   "days": 2,
-   "lastSeen": 20261007
+   "score": 74,
+   "signal": "ورود پله‌ای",
+   "last": 54440,
+   "days": 3,
+   "lastSeen": 20261010
   },
   {
    "symbol": "کولان",
@@ -165,11 +166,11 @@
    "target1": 37679,
    "target2": 39765,
    "rr": 1.35,
-   "score": 64,
+   "score": 62,
    "signal": "زیر نظر",
-   "last": 34840,
-   "days": 2,
-   "lastSeen": 20261007
+   "last": 35670,
+   "days": 3,
+   "lastSeen": 20261010
   },
   {
    "symbol": "فولای",
@@ -184,9 +185,9 @@
    "rr": 1.5,
    "score": 55,
    "signal": "خنثی",
-   "last": 6030,
-   "days": 2,
-   "lastSeen": 20261007
+   "last": 5980,
+   "days": 3,
+   "lastSeen": 20261010
   },
   {
    "symbol": "آواک",
@@ -199,11 +200,11 @@
    "target1": 2772,
    "target2": 2969,
    "rr": 1.25,
-   "score": 65,
+   "score": 59,
    "signal": "زیر نظر",
-   "last": 2650,
-   "days": 0,
-   "lastSeen": 20261007
+   "last": 2622,
+   "days": 1,
+   "lastSeen": 20261010
   }
  ],
  "closed": [
@@ -336,5 +337,5 @@
    "resultPct": -3.532008830022071
   }
  ],
- "updated": "1405-07-15"
+ "updated": "1405-07-18"
 }
