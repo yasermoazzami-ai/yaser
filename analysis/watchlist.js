@@ -11,6 +11,11 @@ const FILE = path.join(__dirname, '..', 'data', 'watchlist.json');
 const MAX_ACTIVE = 12;
 const MAX_ADDS_PER_DAY = 5;
 const MAX_HOLD_DAYS = 25;
+// Overheated market (TEDPIX RSI at or above this): fewer adds, and only real entry signals.
+const HOT_RSI = 80;
+const HOT_MAX_ADDS = 2;
+// Warnings on a held position that tighten its stop to close − 1 ATR.
+const HOLD_WARNINGS = /توزیع|واگرایی منفی|سرانه خرید ضعیف/;
 
 const pct = (a, b) => (b ? (a / b - 1) * 100 : NaN);
 
@@ -33,16 +38,22 @@ function lowRisk(r) {
   return !(r.risks && r.risks.length) && !BLOCKING.has(r.signal) && r.fund.pe > 0 && r.fund.pe <= 20 && r.plan.rr >= 1.2 && r.tech.lockedDays20 < 6;
 }
 
-function candidates(results, oversoldList) {
-  const buys = results.filter(r => r.signal === 'ورود پله‌ای' && lowRisk(r)).map(r => ({ r, reason: 'سیگنال ورود پله‌ای (بدون پرچم ریسک)' }));
-  const quality = results.filter(r => r.signal !== 'ورود پله‌ای' && r.score >= 60 && lowRisk(r)).map(r => ({ r, reason: 'کم‌ریسک: بدون نشانه توزیع، نزدیک میانگین‌ها، ریسک به ریوارد مناسب' }));
+// Track record to 1405-07-22: entry signals won 3 of 4, while "quality" picks without an
+// entry signal (score ≥ 60) won 1 of 8. Quality picks now need score ≥ 70, an uptrend
+// (close > MA20 > MA50) and R/R ≥ 1.5; in an overheated market only entry signals count.
+const upTrend = t => t.close > t.sma20 && t.sma20 > t.sma50;
+function candidates(results, oversoldList, { hot = false } = {}) {
+  const buys = results.filter(r => r.signal === 'ورود پله‌ای' && lowRisk(r) && (!hot || r.plan.rr >= 1.5)).map(r => ({ r, reason: 'سیگنال ورود پله‌ای (بدون پرچم ریسک)' }));
+  if (hot) return buys.sort((a, b) => b.r.score - a.r.score);
+  const quality = results.filter(r => r.signal !== 'ورود پله‌ای' && r.score >= 70 && r.plan.rr >= 1.5 && upTrend(r.tech) && lowRisk(r)).map(r => ({ r, reason: 'کم‌ریسک: روند صعودی، بدون نشانه توزیع، ریسک به ریوارد مناسب' }));
   const rebounds = (oversoldList || []).filter(o => o.label === 'کاندید برگشت' && lowRisk(o.r)).map(o => ({ r: o.r, reason: `برگشت از RSI پایین (${Math.round(o.r.tech.rsi)})` }));
   const seen = new Set();
   return [...buys, ...rebounds, ...quality].filter(c => !seen.has(c.r.symbol) && seen.add(c.r.symbol)).sort((a, b) => b.r.score - a.r.score);
 }
 
 // results: analysed symbols of the day (tse-report analyzeSymbol output), keyed by symbol.
-function update(state, results, oversoldList, date) {
+// opts.indexRsi: TEDPIX RSI of the day, used to throttle new entries in an overheated market.
+function update(state, results, oversoldList, date, opts = {}) {
   const bySymbol = new Map(results.map(r => [r.symbol, r]));
   const removed = [], kept = [], events = [];
 
@@ -61,10 +72,26 @@ function update(state, results, oversoldList, date) {
     else if (high >= item.target2) exit = { reason: 'هدف ۲', price: item.target2 };
     else if (r.signal === 'اجتناب' || r.score < 45) exit = { reason: `تضعیف سیگنال (امتیاز ${Math.round(r.score)})`, price: t.close };
     else if (item.days >= MAX_HOLD_DAYS && !item.hitT1) exit = { reason: `${MAX_HOLD_DAYS} روز بدون رسیدن به هدف`, price: t.close };
+    const atr = Number.isFinite(t.atr) ? t.atr : 0;
     if (!exit && !item.hitT1 && high >= item.target1) {
       item.hitT1 = date;
-      item.stop = Math.max(item.stop, item.entry); // lock in: stop moves to entry
-      events.push(`${item.symbol}: هدف ۱ (${item.target1}) زده شد؛ حد ضرر به قیمت ورود (${item.entry}) منتقل شد`);
+      item.stop = Math.max(item.stop, item.entry, Math.round(high - 2 * atr)); // lock in at least the entry
+      events.push(`${item.symbol}: هدف ۱ (${item.target1}) زده شد؛ حد ضرر به ${item.stop} رسید (ورود ${item.entry})`);
+    } else if (!exit && item.hitT1 && atr) {
+      // Trailing stop after target 1: two ATRs under the day's high, never lower.
+      const trail = Math.round(high - 2 * atr);
+      if (trail > item.stop) { events.push(`${item.symbol}: حد ضرر متحرک از ${item.stop} به ${trail} رسید`); item.stop = trail; }
+    }
+    // Up 10% or more before target 1: the stop goes to breakeven so a winner can't turn into a loss.
+    if (!exit && !item.hitT1 && t.close >= item.entry * 1.10 && item.stop < item.entry) {
+      events.push(`${item.symbol}: ${Math.round(pct(t.close, item.entry))}٪ سود؛ حد ضرر به قیمت ورود (${item.entry}) رسید`);
+      item.stop = item.entry;
+    }
+    // A distribution / divergence / weak-buyer warning on a held position tightens its stop.
+    const warn = !exit && (r.risks || []).find(x => HOLD_WARNINGS.test(x));
+    if (warn && atr) {
+      const tight = Math.round(t.close - atr);
+      if (tight > item.stop) { events.push(`${item.symbol}: هشدار «${warn}»؛ حد ضرر از ${item.stop} به ${tight} نزدیک شد`); item.stop = tight; }
     }
     if (exit) removed.push({ ...item, closedAt: date, exitReason: exit.reason, exitPrice: Math.round(exit.price), resultPct: pct(exit.price, item.entry) });
     else kept.push(item);
@@ -73,14 +100,17 @@ function update(state, results, oversoldList, date) {
   const activeSet = new Set(kept.map(i => i.symbol));
   const recentlyClosed = new Set(state.closed.filter(c => c.closedAt === date).map(c => c.symbol));
   const added = [];
-  for (const c of candidates(results, oversoldList)) {
-    if (kept.length + added.length >= MAX_ACTIVE || added.length >= MAX_ADDS_PER_DAY) break;
+  const hot = opts.indexRsi >= HOT_RSI;
+  const maxAdds = hot ? HOT_MAX_ADDS : MAX_ADDS_PER_DAY;
+  if (hot) events.push(`بازار اشباع خرید (RSI شاخص ${Math.round(opts.indexRsi)})؛ حداکثر ${maxAdds} ورود و فقط سیگنال ورود پله‌ای با R/R ≥ ۱٫۵`);
+  for (const c of candidates(results, oversoldList, { hot })) {
+    if (kept.length + added.length >= MAX_ACTIVE || added.length >= maxAdds) break;
     if (activeSet.has(c.r.symbol) || recentlyClosed.has(c.r.symbol) || removed.some(x => x.symbol === c.r.symbol)) continue;
     const p = c.r.plan;
     added.push({
       symbol: c.r.symbol, name: c.r.name, sector: c.r.fund.sectorName, addedAt: date, reason: c.reason,
       entry: Math.round(c.r.tech.close), stop: Math.round(p.stop), target1: Math.round(p.target1), target2: Math.round(p.target2),
-      rr: Math.round(p.rr * 100) / 100, score: Math.round(c.r.score), signal: c.r.signal, last: c.r.tech.close, days: 0, lastSeen: c.r.tech.lastDate
+      rr: Math.round(p.rr * 100) / 100, score: Math.round(c.r.score), entryScore: Math.round(c.r.score), signal: c.r.signal, last: c.r.tech.close, days: 0, lastSeen: c.r.tech.lastDate
     });
   }
 

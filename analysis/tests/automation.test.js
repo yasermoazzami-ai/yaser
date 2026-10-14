@@ -8,7 +8,7 @@ const intraday = require('../intraday');
 const { jalali } = require('../jalali');
 
 function res(symbol, over = {}) {
-  const tech = { close: 1000, dayHigh: 1010, dayLow: 990, lastDate: 20260923, rsi: 55, atr: 30, resistance1: { price: 1100 }, resistance2: { price: 1200 }, support1: { price: 950 }, lockedDays20: 0, ...over.tech };
+  const tech = { close: 1000, dayHigh: 1010, dayLow: 990, lastDate: 20260923, rsi: 55, atr: 30, sma20: 980, sma50: 950, resistance1: { price: 1100 }, resistance2: { price: 1200 }, support1: { price: 950 }, lockedDays20: 0, ...over.tech };
   return {
     symbol, name: symbol, score: 75, signal: 'ورود پله‌ای', liquidityB: 20,
     fund: { sectorName: 'گروه', pe: 6 }, plan: { stop: 950, target1: 1100, target2: 1200, rr: 2 },
@@ -31,7 +31,7 @@ test('watchlist adds entry signals, then exits on stop and moves stop after targ
   ch = wl.update(state, [res('الف', { tech: { close: 1105, dayHigh: 1110, dayLow: 1090, lastDate: 20260921 } })], [], '2026-09-21');
   assert.equal(ch.removed.length, 0);
   assert.ok(state.active[0].hitT1);
-  assert.equal(state.active[0].stop, 1000, 'stop moves to entry after target 1');
+  assert.equal(state.active[0].stop, 1050, 'after target 1 the stop locks in max(entry, high − 2 ATR)');
 
   ch = wl.update(state, [res('الف', { signal: 'زیر نظر', tech: { close: 995, dayHigh: 1020, dayLow: 990, lastDate: 20260922 } })], [], '2026-09-22');
   assert.equal(ch.removed.length, 1);
@@ -39,11 +39,42 @@ test('watchlist adds entry signals, then exits on stop and moves stop after targ
   assert.equal(state.active.length, 0);
 });
 
-test('watchlist admits a risk-free quality setup without an entry signal', () => {
+test('watchlist admits a quality setup without an entry signal only with score ≥ 70, uptrend and R/R ≥ 1.5', () => {
   const state = { active: [], closed: [], updated: null };
-  const ch = wl.update(state, [res('ت', { signal: 'زیر نظر', score: 63 }), res('ث', { signal: 'زیر نظر', score: 63, plan: { stop: 950, target1: 1020, target2: 1100, rr: 0.4 } })], [], 'd1');
+  const ch = wl.update(state, [
+    res('ت', { signal: 'زیر نظر', score: 72 }),
+    res('ث', { signal: 'زیر نظر', score: 72, plan: { stop: 950, target1: 1020, target2: 1100, rr: 0.4 } }),
+    res('چ', { signal: 'زیر نظر', score: 63 }),
+    res('ح', { signal: 'زیر نظر', score: 72, tech: { sma20: 1020 } })
+  ], [], 'd1');
   assert.deepEqual(ch.added.map(a => a.symbol), ['ت']);
   assert.match(ch.added[0].reason, /کم‌ریسک/);
+});
+
+test('a 10% gain before target 1 moves the stop to breakeven', () => {
+  const state = { active: [], closed: [], updated: null };
+  wl.update(state, [res('ب', { plan: { stop: 950, target1: 1200, target2: 1300, rr: 2 } })], [], 'd1');
+  wl.update(state, [res('ب', { tech: { close: 1100, dayHigh: 1110, dayLow: 1080, lastDate: 20260924 } })], [], 'd2');
+  assert.equal(state.active[0].stop, 1000);
+});
+
+test('overheated market: at most two adds, entry signals only', () => {
+  const state = { active: [], closed: [], updated: null };
+  const ch = wl.update(state, [res('۱'), res('۲'), res('۳'), res('ک', { signal: 'زیر نظر', score: 80 })], [], 'd1', { indexRsi: 84 });
+  assert.equal(ch.added.length, 2);
+  assert.ok(ch.added.every(a => /ورود پله‌ای/.test(a.reason)));
+});
+
+test('trailing stop after target 1 and warning-tightened stop on a held position', () => {
+  const state = { active: [], closed: [], updated: null };
+  wl.update(state, [res('م')], [], 'd1');
+  wl.update(state, [res('م', { tech: { close: 1105, dayHigh: 1110, dayLow: 1090, lastDate: 20260924 } })], [], 'd2');
+  assert.equal(state.active[0].stop, 1050);
+  wl.update(state, [res('م', { tech: { close: 1150, dayHigh: 1160, dayLow: 1120, lastDate: 20260925 } })], [], 'd3');
+  assert.equal(state.active[0].stop, 1100, 'stop trails two ATRs under the high');
+  const ch = wl.update(state, [res('م', { risks: ['واگرایی منفی'], tech: { close: 1160, dayHigh: 1165, dayLow: 1140, lastDate: 20260926 } })], [], 'd4');
+  assert.equal(state.active[0].stop, 1130, 'a warning tightens the stop to close − 1 ATR');
+  assert.ok(ch.events.some(e => /واگرایی منفی/.test(e)));
 });
 
 test('watchlist drops a symbol whose signal turns to avoid', () => {
@@ -82,10 +113,13 @@ test('intraday scan flags smart money and watchlist stops, not weak symbols', ()
     ['ضعیف', { symbol: 'ضعیف', time: '2026-09-23 07:15:00+00', last: 990, low: 980, changePct: -1, value: 30e10, realBuyVal: 10e10, realSellVal: 20e10, realBuyCount: 100, realSellCount: 10 }],
     ['واچ', { symbol: 'واچ', time: '2026-09-23 07:15:00+00', last: 940, low: 930, changePct: -4, value: 1e10, realBuyVal: 1, realSellVal: 1, realBuyCount: 1, realSellCount: 1 }]
   ]);
-  const alerts = intraday.scan([res('قوی'), res('ضعیف')], snaps, [{ symbol: 'واچ', stop: 950, target1: 1100, target2: 1200, entry: 1000 }]);
+  snaps.set('نزدیک', { symbol: 'نزدیک', time: '2026-09-23 07:15:00+00', last: 960, low: 955, changePct: -2, value: 1e10, realBuyVal: 1, realSellVal: 1, realBuyCount: 1, realSellCount: 1 });
+  const alerts = intraday.scan([res('قوی'), res('ضعیف')], snaps, [{ symbol: 'واچ', stop: 950, target1: 1100, target2: 1200, entry: 1000 }, { symbol: 'نزدیک', stop: 950, target1: 1100, target2: 1200, entry: 1000 }, { symbol: 'قوی', stop: 900, target1: 1200, target2: 1300, entry: 1000 }]);
   const types = alerts.map(a => `${a.symbol}:${a.type}`);
   assert.ok(types.includes('قوی:smart-money'));
+  assert.ok(alerts.find(a => a.type === 'smart-money').held, 'a signal on a held symbol is marked as held');
   assert.ok(types.includes('واچ:wl-stop'));
+  assert.ok(types.includes('نزدیک:wl-near'));
   assert.ok(!types.some(t => t.startsWith('ضعیف')));
   assert.equal(intraday.tehranTime('2026-09-23 05:30:00+00'), '09:00');
 });

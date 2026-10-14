@@ -74,8 +74,12 @@ function scan(results, snaps, watch) {
     const s = snaps.get(live.faKey(w.symbol));
     if (!s) continue;
     if (s.last <= w.stop) alerts.push({ symbol: w.symbol, type: 'wl-stop', title: 'واچ‌لیست: حد ضرر', detail: `قیمت ${fa(s.last)} ≤ حد ضرر ${fa(w.stop)} (ورود ${fa(w.entry)})`, price: s.last, pct: s.changePct, time: tehranTime(s.time) });
+    else if (s.last <= w.stop * 1.015) alerts.push({ symbol: w.symbol, type: 'wl-near', title: 'واچ‌لیست: نزدیک حد ضرر', detail: `قیمت ${fa(s.last)} فقط ${fa((s.last / w.stop - 1) * 100, 1)}٪ بالای حد ضرر ${fa(w.stop)} (ورود ${fa(w.entry)})`, price: s.last, pct: s.changePct, time: tehranTime(s.time) });
     else if (s.last >= (w.hitT1 ? w.target2 : w.target1)) alerts.push({ symbol: w.symbol, type: w.hitT1 ? 'wl-t2' : 'wl-t1', title: `واچ‌لیست: هدف ${w.hitT1 ? '۲' : '۱'}`, detail: `قیمت ${fa(s.last)} به هدف ${fa(w.hitT1 ? w.target2 : w.target1)} رسید (ورود ${fa(w.entry)})`, price: s.last, pct: s.changePct, time: tehranTime(s.time) });
   }
+  // A scan signal on a symbol already held is about that position, not a new entry.
+  const held = new Set(watch.map(w => live.faKey(w.symbol)));
+  for (const a of alerts) if (!a.type.startsWith('wl') && held.has(live.faKey(a.symbol))) a.held = true;
   const rank = a => (a.type.startsWith('wl') ? 1e6 : 0) + (a.score || 0) + (a.power || 0) * 5;
   return alerts.sort((a, b) => rank(b) - rank(a));
 }
@@ -89,12 +93,12 @@ function render(alerts, date, time) {
     const plan = a.plan ? ` · حد ضرر ${fa(a.plan.stop)} · هدف ${fa(a.plan.target1)}` : '';
     const stats = Number.isFinite(a.valueRatio) ? ` · حجم ${fa(a.valueRatio, 1)}× میانگین · امتیاز ${fa(a.score)}` : '';
     const ok = a.type.startsWith('wl') ? '' : ' · ✅ بدون پرچم ریسک';
-    lines.push(`- **${a.symbol}** (${a.title}) — ${fa(a.price)} (${sgn(a.pct)}${fa(a.pct, 1)}٪): ${a.detail}${stats}${plan}${ok}`);
+    lines.push(`- **${a.symbol}**${a.held ? ' [در واچ‌لیست]' : ''} (${a.title}) — ${fa(a.price)} (${sgn(a.pct)}${fa(a.pct, 1)}٪): ${a.detail}${stats}${plan}${ok}`);
   }
   if (!clean.length) lines.push('- هیچ سهم کم‌ریسکی در این ساعت سیگنال نداد.');
   if (risky.length) {
     const bySym = new Map();
-    for (const a of risky) if (!bySym.has(a.symbol)) bySym.set(a.symbol, `${a.symbol} (${sgn(a.pct)}${fa(a.pct, 1)}٪، ${[...(a.tech && a.tech.lockedDays20 >= 6 ? ['صفی'] : []), ...(a.risks || [])][0] || 'پرریسک'})`);
+    for (const a of risky) if (!bySym.has(a.symbol)) bySym.set(a.symbol, `${a.held ? '🔴 ' : ''}${a.symbol}${a.held ? ' [در واچ‌لیست]' : ''} (${sgn(a.pct)}${fa(a.pct, 1)}٪، ${[...(a.tech && a.tech.lockedDays20 >= 6 ? ['صفی'] : []), ...(a.risks || [])][0] || 'پرریسک'})`);
     lines.push(`- ⚠️ پرریسک، فقط برای اطلاع: ${[...bySym.values()].join('، ')}`);
   }
   return lines.join('\n') + '\n';

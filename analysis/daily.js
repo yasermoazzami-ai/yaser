@@ -59,7 +59,7 @@ function summary(date, out, change, indices, cap) {
     `${fa(out.ok.length)} سهم: ${fa(counts['ورود پله‌ای'] || 0)} ورود پله‌ای · ${fa(counts['اجتناب'] || 0)} اجتناب`,
     change.added.length ? `➕ واچ‌لیست: ${change.added.map(a => `${a.symbol} (ورود ${fa(a.entry)}، ضرر ${fa(a.stop)}، هدف ${fa(a.target1)})`).join('، ')}` : '➕ امروز سهم جدیدی به واچ‌لیست اضافه نشد',
     change.removed.length ? `➖ خروج: ${change.removed.map(x => `${x.symbol} ${x.exitReason} (${x.resultPct > 0 ? '+' : ''}${fa(x.resultPct, 1)}٪)`).join('، ')}` : '',
-    ...change.events.map(e => `🎯 ${e}`),
+    ...change.events.map(e => `${/حد ضرر از|هشدار/.test(e) ? '⚠️' : /اشباع/.test(e) ? '🌡' : '🎯'} ${e}`),
     cap && cap.open ? '⚠️ بازار هنوز باز بود؛ داده امروز ناقص است.' : ''
   ];
   return lines.filter(Boolean).join('\n');
@@ -87,7 +87,7 @@ async function main() {
   const out = report.run(data, { top: 40, cards: 25, minValue: 3 });
   const oversold = report.oversold(out.ok, 45);
   const jdate = jalali(date).iso;
-  const change = state.updated === jdate ? { added: [], removed: [], events: [] } : wl.update(state, out.ok, oversold, jdate);
+  const change = state.updated === jdate ? { added: [], removed: [], events: [] } : wl.update(state, out.ok, oversold, jdate, { indexRsi: out.indexT && out.indexT.rsi });
   wl.save(state);
 
   const dir = path.join(REPORTS, jalali(date).iso);
